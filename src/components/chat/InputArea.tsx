@@ -140,8 +140,8 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
   };
 
   return (
-    <div className="relative bg-transparent pb-2 md:pb-6 pt-1">
-      <div className="max-w-3xl mx-auto px-2 md:px-8 pt-2 pb-2">
+    <div className="relative bg-transparent pb-1 md:pb-5">
+      <div className="max-w-3xl mx-auto px-2 md:px-8 pt-2 pb-1 md:pb-2">
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-xl bg-primary-subtle border border-primary/10 animate-message-in">
@@ -188,7 +188,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`relative flex items-end gap-2 md:gap-3 bg-surface border rounded-2xl md:rounded-3xl px-3 py-2 md:px-4 md:py-2.5 shadow-medium mx-3 md:mx-4
+          className={`relative flex items-center gap-2 md:gap-3 bg-surface border rounded-2xl md:rounded-3xl px-3 py-2 md:px-4 md:py-3 shadow-medium mx-3 md:mx-4
             input-focus-ring transition-all duration-200 ${dragOver ? 'border-primary ring-2 ring-primary/20' :
             isStreaming ? 'border-primary/30' : 'border-border focus-within:border-primary/30'}`}
         >
