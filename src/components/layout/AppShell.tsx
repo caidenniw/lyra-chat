@@ -132,7 +132,6 @@ export function AppShell() {
       `}
       >
         <Sidebar
-          isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(false)}
           conversations={conversations}
           projects={projects}

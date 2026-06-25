@@ -8,7 +8,6 @@ export interface Project {
 }
 
 interface SidebarProps {
-  isOpen: boolean;
   onToggle: () => void;
   conversations: Array<{ id: string; title: string; projectId?: string | null }>;
   projects: Project[];
@@ -21,8 +20,8 @@ interface SidebarProps {
   onMoveToProject: (conversationId: string, projectId: string | null) => void;
 }
 
-export function Sidebar({
-  isOpen, onToggle, conversations, projects, activeId,
+export function Sidebar({ 
+  onToggle, conversations, projects, activeId,
   onSelect, onDelete, onNewChat,
   onCreateProject, onMoveToProject,
 }: SidebarProps) {
