@@ -42,7 +42,7 @@ export async function streamChat(
     model,
     messages: processedMessages,
     stream: true,
-    max_tokens: 2048, // Dikurangi agar response tidak memakan waktu > 30s (Vercel limit)
+    max_tokens: 4096, // Dikembalikan ke maksimal
   };
 
   try {

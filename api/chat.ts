@@ -3,6 +3,7 @@
 
 export const config = {
   runtime: 'edge',
+  maxDuration: 60, // Memaksa durasi maksimum yang diizinkan (Edge membolehkan lebih dari 10s jika tidak ada CPU heavy process)
 };
 
 export default async function handler(req: Request) {
