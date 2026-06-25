@@ -44,7 +44,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       )}
 
       {/* Message Content */}
-      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[75%]`}>
+      <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[85%] min-w-0`}>
         {/* Label */}
         <div className={`text-[10px] md:text-[11px] font-medium mb-0.5 md:mb-1 px-1 ${isUser ? 'text-text-muted' : 'text-primary'}`}>
           {isUser ? 'Kamu' : 'Lyra'}
@@ -69,16 +69,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
         )}
 
         {/* Bubble */}
-        <div
-          className={`
-            group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3
-            transition-all duration-200
-            ${isUser
-              ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
-              : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
-            }
-          `}
-        >
+        <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-200 max-w-full min-w-0 overflow-x-auto ${
+          isUser
+            ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
+            : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
+        }`}>
           {isEmpty ? (
             /* Typing animation dots */
             <div className="flex items-center gap-1.5 py-1">
