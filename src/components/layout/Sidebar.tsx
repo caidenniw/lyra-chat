@@ -1,4 +1,4 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X } from 'lucide-react';
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
@@ -257,7 +257,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="w-[260px] h-full bg-surface border-r border-border flex flex-col relative max-md:pt-12">
+      <aside className="w-[260px] h-full bg-surface border-r border-border flex flex-col relative max-md:pt-3">
         {/* Header */}
         <div className="px-4 pb-3 pt-4 md:pt-4">
           <div className="flex items-center justify-between mb-4">
@@ -421,44 +421,38 @@ export function Sidebar({
 
         {/* User Profile */}
         <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3">
-            {user ? (
-              <>
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft">
-                  <span className="text-white font-bold text-xs">
-                    {user.email?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text truncate">{user.email}</div>
-                  <div className="text-[10px] text-text-dim">Akun Aktif</div>
-                </div>
-                <button
-                  onClick={onSignOut}
-                  className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-bg-alt transition-colors btn-press"
-                  title="Keluar"
-                >
-                  <LogOut size={14} />
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="w-8 h-8 rounded-xl bg-bg-alt border border-border flex items-center justify-center">
-                  <span className="text-text-dim text-xs font-medium">G</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text-muted">Guest Mode</div>
-                  <div className="text-[10px] text-text-dim">Chat tidak tersimpan</div>
-                </div>
-                <button
-                  onClick={onAuthModalOpen}
-                  className="text-[10px] text-primary hover:text-primary-light font-medium transition-colors btn-press"
-                >
-                  Login
-                </button>
-              </>
-            )}
-          </div>
+          {user ? (
+            <div className="flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft flex-shrink-0">
+                <span className="text-white font-bold text-xs">
+                  {user.email?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-text truncate">{user.email}</div>
+              </div>
+              <button
+                onClick={onSignOut}
+                className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-red-50 transition-colors btn-press flex-shrink-0"
+                title="Keluar"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onAuthModalOpen}
+              className="w-full flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors btn-press text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-bg-alt border border-border flex items-center justify-center flex-shrink-0">
+                <UserIcon size={14} className="text-text-dim" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-text-muted">Guest Mode</div>
+              </div>
+              <ChevronRight size={14} className="text-text-dim flex-shrink-0" />
+            </button>
+          )}
         </div>
       </aside>
     </>
