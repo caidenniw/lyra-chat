@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
 import { Sidebar, type Project } from './Sidebar';
@@ -39,6 +39,7 @@ export interface Conversation {
 export function AppShell() {
   const { user, signOut } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [guestBannerDismissed, setGuestBannerDismissed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [projects, setProjects] = useState<Project[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([
@@ -189,15 +190,21 @@ export function AppShell() {
         />
       </main>
 
-      {/* Guest Banner */}
-      {!user && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center gap-3 px-4 py-2.5 bg-primary/95 backdrop-blur-sm text-white text-xs md:text-sm animate-fade-in">
-          <span className="opacity-90">Chat akan hilang saat refresh.</span>
+      {/* Guest Banner — compact pill */}
+      {!user && !guestBannerDismissed && (
+        <div className="fixed bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-full shadow-medium text-xs animate-fade-in">
+          <span className="text-text-muted">Chat tidak tersimpan</span>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 font-medium transition-colors btn-press"
+            className="px-2.5 py-1 rounded-full bg-primary text-white hover:bg-primary-hover font-medium transition-colors btn-press"
           >
-            Login untuk menyimpan
+            Login
+          </button>
+          <button
+            onClick={() => setGuestBannerDismissed(true)}
+            className="p-0.5 rounded-full text-text-dim hover:text-text hover:bg-bg-alt transition-colors"
+          >
+            <X size={12} />
           </button>
         </div>
       )}
