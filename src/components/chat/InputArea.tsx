@@ -241,15 +241,15 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`relative flex items-center gap-2 md:gap-3 bg-bg md:bg-surface border rounded-xl md:rounded-2xl px-3 py-1.5 md:px-4 md:py-2.5 shadow-soft md:shadow-medium mx-0 md:mx-4
+          className={`relative flex items-center gap-1.5 md:gap-3 bg-bg md:bg-surface border rounded-xl md:rounded-2xl px-2.5 py-1 md:px-4 md:py-2 shadow-soft md:shadow-medium mx-0 md:mx-4
             input-focus-ring transition-all duration-200 ${dragOver ? "border-primary ring-2 ring-primary/20" : isStreaming ? "border-primary/30" : "border-border focus-within:border-primary/30"}`}
         >
           {/* Model Selector */}
           <button
             onClick={() => setModelPickerOpen(true)}
-            className="flex-shrink-0 flex items-center gap-1 px-1.5 md:px-2 py-1 rounded-lg
+            className="flex-shrink-0 flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg
               bg-bg-alt border border-border text-text-dim hover:text-text hover:border-primary/20
-              transition-all duration-200 text-[10px] md:text-[11px] font-medium mb-0.5 btn-press"
+              transition-all duration-200 text-[10px] md:text-[11px] font-medium btn-press"
           >
             <span className="truncate max-w-[45px] md:max-w-[60px]">{currentModel.name}</span>
             <ChevronDown size={10} className="md:hidden" />
@@ -282,14 +282,14 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             placeholder={isStreaming ? "Lyra sedang menjawab..." : "Ketik pesan atau lampirkan file..."}
             rows={1}
             disabled={isStreaming}
-            className="flex-1 bg-transparent text-text text-[15px] placeholder:text-text-dim
-              resize-none outline-none max-h-[200px] leading-relaxed disabled:opacity-50 py-1"
+            className="flex-1 bg-transparent text-text text-[14px] md:text-[15px] placeholder:text-text-dim
+              resize-none outline-none max-h-[200px] leading-normal disabled:opacity-50"
           />
 
           {/* Send / Stop */}
           {isStreaming ? (
             <button
-              className="flex-shrink-0 p-1.5 md:p-2 rounded-xl bg-accent text-white shadow-soft mb-0.5
+              className="flex-shrink-0 p-1.5 md:p-2 rounded-xl bg-accent text-white shadow-soft
                 hover:bg-accent-hover transition-all duration-200 btn-press"
               title="Hentikan respons"
             >
@@ -301,7 +301,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
               onClick={handleSubmit}
               disabled={!input.trim() && files.length === 0}
               className={`
-                flex-shrink-0 p-1.5 md:p-2 rounded-xl transition-all duration-200 mb-0.5 btn-press
+                flex-shrink-0 p-1.5 md:p-2 rounded-xl transition-all duration-200 btn-press
                 ${input.trim() || files.length > 0 ? "bg-primary text-white hover:bg-primary-hover shadow-soft" : "bg-border text-text-dim cursor-not-allowed"}
               `}
             >
