@@ -142,7 +142,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
 
       {/* Code */}
       <div className="bg-[#0a1628] overflow-x-auto">
-        <pre className="p-3 md:p-4 text-[12px] md:text-[13px] leading-relaxed break-words whitespace-pre-wrap sm:whitespace-pre sm:break-normal max-w-[80vw] sm:max-w-none">
+        <pre className="p-3 md:p-4 text-[12px] md:text-[13px] leading-relaxed whitespace-pre min-w-full inline-block">
           <code
             className="font-mono text-slate-300"
             dangerouslySetInnerHTML={{ __html: highlighted }}

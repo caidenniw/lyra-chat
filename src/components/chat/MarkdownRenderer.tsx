@@ -76,7 +76,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const parts = parseMarkdown(content);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 w-full max-w-full overflow-hidden">
       {parts.map((part, i) => {
         if (part.type === 'code') {
           return <CodeBlock key={i} code={part.content} language={part.language} />;
