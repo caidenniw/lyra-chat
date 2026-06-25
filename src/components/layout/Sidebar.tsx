@@ -96,8 +96,6 @@ export function Sidebar({
     setMoveMenu(null);
   };
 
-  if (!isOpen) return null;
-
   return (
     <>
       <aside className="w-[260px] h-full bg-surface border-r border-border flex flex-col relative animate-slide-in-left max-md:pt-12">
