@@ -1,8 +1,8 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { User } from '@supabase/supabase-js';
-import logoIcon from '../../assets/gambar2.png';
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { User } from "@supabase/supabase-js";
+import logoIcon from "../../assets/gambar2.png";
 
 export interface Project {
   id: string;
@@ -26,19 +26,15 @@ interface SidebarProps {
   onMoveToProject: (conversationId: string, projectId: string | null) => void;
 }
 
-export function Sidebar({
-  onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId,
-  onSelect, onDelete, onRename, onNewChat,
-  onCreateProject, onMoveToProject,
-}: SidebarProps) {
-  const [search, setSearch] = useState('');
+export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject }: SidebarProps) {
+  const [search, setSearch] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [showNewProject, setShowNewProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectName, setNewProjectName] = useState("");
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [moveMenu, setMoveMenu] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
+  const [renameValue, setRenameValue] = useState("");
 
   const newProjectRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -54,37 +50,43 @@ export function Sidebar({
 
   // Close menus on outside click
   useEffect(() => {
-    const handleClick = () => { setActiveMenu(null); setMoveMenu(null); };
+    const handleClick = () => {
+      setActiveMenu(null);
+      setMoveMenu(null);
+    };
     if (activeMenu || moveMenu) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
     }
   }, [activeMenu, moveMenu]);
 
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setActiveMenu(null); setMoveMenu(null); setShowNewProject(false); setRenameId(null); }
+      if (e.key === "Escape") {
+        setActiveMenu(null);
+        setMoveMenu(null);
+        setShowNewProject(false);
+        setRenameId(null);
+      }
     };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  const filteredConversations = search
-    ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
-    : conversations;
+  const filteredConversations = search ? conversations.filter((c) => c.title.toLowerCase().includes(search.toLowerCase())) : conversations;
 
-  const ungrouped = filteredConversations.filter(c => !c.projectId);
-  const groupedByProject = (projectId: string) => filteredConversations.filter(c => c.projectId === projectId);
+  const ungrouped = filteredConversations.filter((c) => !c.projectId);
+  const groupedByProject = (projectId: string) => filteredConversations.filter((c) => c.projectId === projectId);
 
   const toggleProject = (id: string) => {
-    setExpandedProjects(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedProjects((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleCreateProject = () => {
     if (newProjectName.trim()) {
       onCreateProject(newProjectName.trim());
-      setNewProjectName('');
+      setNewProjectName("");
       setShowNewProject(false);
     }
   };
@@ -100,7 +102,7 @@ export function Sidebar({
       onRename(renameId, renameValue.trim());
     }
     setRenameId(null);
-    setRenameValue('');
+    setRenameValue("");
   };
 
   const handleMenuToggle = (e: React.MouseEvent, convId: string) => {
@@ -136,8 +138,11 @@ export function Sidebar({
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') confirmRename();
-                if (e.key === 'Escape') { setRenameId(null); setRenameValue(''); }
+                if (e.key === "Enter") confirmRename();
+                if (e.key === "Escape") {
+                  setRenameId(null);
+                  setRenameValue("");
+                }
               }}
               onBlur={confirmRename}
               className="flex-1 px-2 py-1 text-xs bg-bg border border-primary/30 rounded-lg outline-none"
@@ -145,7 +150,13 @@ export function Sidebar({
             <button onClick={confirmRename} className="p-0.5 text-primary hover:text-primary-light">
               <Check size={12} />
             </button>
-            <button onClick={() => { setRenameId(null); setRenameValue(''); }} className="p-0.5 text-text-dim hover:text-text">
+            <button
+              onClick={() => {
+                setRenameId(null);
+                setRenameValue("");
+              }}
+              className="p-0.5 text-text-dim hover:text-text"
+            >
               <X size={12} />
             </button>
           </div>
@@ -154,19 +165,17 @@ export function Sidebar({
           <button
             onClick={() => onSelect(conv.id)}
             className={`w-full flex items-center gap-1 pr-1 text-left rounded-lg text-xs transition-colors btn-press ${
-              activeId === conv.id
-                ? 'bg-primary/10 text-primary font-medium py-1.5 px-3'
-                : 'text-text-muted hover:text-text hover:bg-bg-alt py-1.5 px-3'
+              activeId === conv.id ? "bg-primary/10 text-primary font-medium py-1.5 px-3" : "text-text-muted hover:text-text hover:bg-bg-alt py-1.5 px-3"
             }`}
           >
             <span className="flex-1 truncate">{conv.title}</span>
             {/* Three-dot menu button — always visible on mobile, hover on desktop */}
             <button
-              ref={(el) => { menuButtonRefs.current[conv.id] = el; }}
+              ref={(el) => {
+                menuButtonRefs.current[conv.id] = el;
+              }}
               onClick={(e) => handleMenuToggle(e, conv.id)}
-              className={`p-0.5 rounded text-text-dim hover:text-text hover:bg-border/50 transition-colors ${
-                isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 max-md:opacity-100'
-              }`}
+              className={`p-0.5 rounded text-text-dim hover:text-text hover:bg-border/50 transition-colors ${isMenuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 max-md:opacity-100"}`}
             >
               <MoreVertical size={12} />
             </button>
@@ -180,27 +189,24 @@ export function Sidebar({
               initial={{ opacity: 0, scale: 0.95, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
               className="absolute right-2 top-full z-[150] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[160px]"
             >
-              <button
-                onClick={() => startRename(conv.id, conv.title)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-              >
+              <button onClick={() => startRename(conv.id, conv.title)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
                 <Edit3 size={14} />
                 Ganti nama
               </button>
-              <button
-                onClick={() => handleMoveClick(conv.id)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-              >
+              <button onClick={() => handleMoveClick(conv.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
                 <FolderInput size={14} />
                 Pindah ke Proyek
               </button>
               <div className="mx-2 my-1 border-t border-border" />
               <button
-                onClick={() => { onDelete(conv.id); setActiveMenu(null); }}
+                onClick={() => {
+                  onDelete(conv.id);
+                  setActiveMenu(null);
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
               >
                 <Trash2 size={14} />
@@ -217,36 +223,24 @@ export function Sidebar({
               initial={{ opacity: 0, scale: 0.95, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
               className="absolute right-2 top-full z-[150] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
             >
               <div className="px-3 py-1.5 text-[10px] text-text-dim font-medium uppercase">Pindahkan ke</div>
-              <button
-                onClick={() => handleMove(conv.id, null)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-              >
+              <button onClick={() => handleMove(conv.id, null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
                 <Clock size={14} />
                 Riwayat
               </button>
-              {projects.map(project => (
-                <button
-                  key={project.id}
-                  onClick={() => handleMove(conv.id, project.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-                >
+              {projects.map((project) => (
+                <button key={project.id} onClick={() => handleMove(conv.id, project.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
                   <FolderOpen size={14} />
                   {project.name}
                 </button>
               ))}
-              {projects.length === 0 && (
-                <div className="px-3 py-2 text-xs text-text-dim italic">Buat proyek dulu di Pustaka</div>
-              )}
+              {projects.length === 0 && <div className="px-3 py-2 text-xs text-text-dim italic">Buat proyek dulu di Pustaka</div>}
               <div className="mx-2 my-1 border-t border-border" />
-              <button
-                onClick={() => setMoveMenu(null)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-dim hover:bg-bg-alt transition-colors"
-              >
+              <button onClick={() => setMoveMenu(null)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-dim hover:bg-bg-alt transition-colors">
                 ← Kembali
               </button>
             </motion.div>
@@ -266,11 +260,7 @@ export function Sidebar({
               <img src={logoIcon} alt="Lyra" className="w-8 h-8 rounded-xl object-contain" />
               <span className="font-semibold text-text text-base">Lyra</span>
             </div>
-            <button
-              onClick={onToggle}
-              className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press"
-              title="Tutup sidebar"
-            >
+            <button onClick={onToggle} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press" title="Tutup sidebar">
               <PanelLeftClose size={16} />
             </button>
           </div>
@@ -299,10 +289,7 @@ export function Sidebar({
                 text-text placeholder:text-text-dim outline-none focus:border-primary/30 transition-colors"
             />
             {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-dim hover:text-text text-xs btn-press"
-              >
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-dim hover:text-text text-xs btn-press">
                 ✕
               </button>
             )}
@@ -315,12 +302,14 @@ export function Sidebar({
           <div>
             <button
               onClick={() => {
-                const allExpanded = projects.every(p => expandedProjects[p.id]);
+                const allExpanded = projects.every((p) => expandedProjects[p.id]);
                 if (allExpanded) {
                   setExpandedProjects({});
                 } else {
                   const next: Record<string, boolean> = {};
-                  projects.forEach(p => { next[p.id] = true; });
+                  projects.forEach((p) => {
+                    next[p.id] = true;
+                  });
                   setExpandedProjects(next);
                 }
               }}
@@ -340,11 +329,7 @@ export function Sidebar({
                 >
                   <Plus size={14} />
                 </button>
-                {projects.length > 0 && (
-                  projects.every(p => expandedProjects[p.id])
-                    ? <ChevronDown size={14} className="text-text-dim" />
-                    : <ChevronRight size={14} className="text-text-dim" />
-                )}
+                {projects.length > 0 && (projects.every((p) => expandedProjects[p.id]) ? <ChevronDown size={14} className="text-text-dim" /> : <ChevronRight size={14} className="text-text-dim" />)}
               </div>
             </button>
 
@@ -357,8 +342,11 @@ export function Sidebar({
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCreateProject();
-                    if (e.key === 'Escape') { setShowNewProject(false); setNewProjectName(''); }
+                    if (e.key === "Enter") handleCreateProject();
+                    if (e.key === "Escape") {
+                      setShowNewProject(false);
+                      setNewProjectName("");
+                    }
                   }}
                   onBlur={() => {
                     if (newProjectName.trim()) handleCreateProject();
@@ -372,25 +360,18 @@ export function Sidebar({
             )}
 
             {/* Project List */}
-            {projects.map(project => (
+            {projects.map((project) => (
               <div key={project.id}>
-                <button
-                  onClick={() => toggleProject(project.id)}
-                  className="w-full flex items-center justify-between pl-9 pr-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press"
-                >
+                <button onClick={() => toggleProject(project.id)} className="w-full flex items-center justify-between pl-9 pr-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press">
                   <span className="truncate">{project.name}</span>
-                  <span className="text-[10px] text-text-dim bg-bg-alt px-1.5 py-0.5 rounded-md">
-                    {groupedByProject(project.id).length}
-                  </span>
+                  <span className="text-[10px] text-text-dim bg-bg-alt px-1.5 py-0.5 rounded-md">{groupedByProject(project.id).length}</span>
                 </button>
 
                 {/* Conversations in project */}
                 {expandedProjects[project.id] && (
                   <div className="pl-6 pr-1">
-                    {groupedByProject(project.id).length === 0 && (
-                      <div className="text-[10px] text-text-dim py-1 italic">Belum ada percakapan</div>
-                    )}
-                    {groupedByProject(project.id).map(conv => renderConvItem(conv))}
+                    {groupedByProject(project.id).length === 0 && <div className="text-[10px] text-text-dim py-1 italic">Belum ada percakapan</div>}
+                    {groupedByProject(project.id).map((conv) => renderConvItem(conv))}
                   </div>
                 )}
               </div>
@@ -399,37 +380,26 @@ export function Sidebar({
 
           {/* Riwayat */}
           <div className="mt-1">
-            <button
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press"
-            >
+            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press">
               <Clock size={16} />
               <span className="font-medium">Riwayat</span>
             </button>
 
             <div className="px-1">
-              {ungrouped.length === 0 && !search && (
-                <div className="text-[10px] text-text-dim py-2 italic">Belum ada percakapan</div>
-              )}
-              {ungrouped.length === 0 && search && (
-                <div className="text-[10px] text-text-dim py-2 italic">Tidak ditemukan</div>
-              )}
-              {ungrouped.map(conv => renderConvItem(conv))}
+              {ungrouped.length === 0 && !search && <div className="text-[10px] text-text-dim py-2 italic">Belum ada percakapan</div>}
+              {ungrouped.length === 0 && search && <div className="text-[10px] text-text-dim py-2 italic">Tidak ditemukan</div>}
+              {ungrouped.map((conv) => renderConvItem(conv))}
             </div>
           </div>
         </nav>
 
         {/* Developer badge */}
         <div className="px-4 pb-2">
-          <a
-            href="https://github.com/caidenniw/lyra-chat"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-alt/50 hover:bg-bg-alt transition-colors group"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-text-dim group-hover:text-text transition-colors"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-            <span className="text-[11px] text-text-dim group-hover:text-text-muted transition-colors">
-              Lyra v0.1.0
-            </span>
+          <a href="https://github.com/caidenniw" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-alt/50 hover:bg-bg-alt transition-colors group">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-text-dim group-hover:text-text transition-colors">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+            </svg>
+            <span className="text-[11px] text-text-dim group-hover:text-text-muted transition-colors">Lyra v0.1.0</span>
             <span className="text-[10px] text-text-dim/50 ml-auto">by Caiden</span>
           </a>
         </div>
@@ -439,26 +409,17 @@ export function Sidebar({
           {user ? (
             <div className="flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft flex-shrink-0">
-                <span className="text-white font-bold text-xs">
-                  {user.email?.charAt(0).toUpperCase() || 'U'}
-                </span>
+                <span className="text-white font-bold text-xs">{user.email?.charAt(0).toUpperCase() || "U"}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-text truncate">{user.email}</div>
               </div>
-              <button
-                onClick={onSignOut}
-                className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-red-50 transition-colors btn-press flex-shrink-0"
-                title="Keluar"
-              >
+              <button onClick={onSignOut} className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-red-50 transition-colors btn-press flex-shrink-0" title="Keluar">
                 <LogOut size={14} />
               </button>
             </div>
           ) : (
-            <button
-              onClick={onAuthModalOpen}
-              className="w-full flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors btn-press text-left"
-            >
+            <button onClick={onAuthModalOpen} className="w-full flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors btn-press text-left">
               <div className="w-8 h-8 rounded-xl bg-bg-alt border border-border flex items-center justify-center flex-shrink-0">
                 <UserIcon size={14} className="text-text-dim" />
               </div>
