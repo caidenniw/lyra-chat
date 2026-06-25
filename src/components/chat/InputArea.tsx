@@ -1,7 +1,7 @@
-import { Send, Paperclip, Square, X, FileText, ChevronDown, Check, Star } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback } from 'react';
-import type { AttachedFile } from '../layout/AppShell';
-import { MODELS } from '../../lib/ai/models';
+import { Send, Paperclip, Square, X, FileText, ChevronDown, Check, Star } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import type { AttachedFile } from "../layout/AppShell";
+import { MODELS } from "../../lib/ai/models";
 
 interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
@@ -15,9 +15,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 function readFileAsDataURL(file: File): Promise<string> {
@@ -39,93 +39,143 @@ function readFileAsText(file: File): Promise<string> {
 }
 
 function isImageFile(type: string): boolean {
-  return type.startsWith('image/');
+  return type.startsWith("image/");
 }
 
 function isTextFile(name: string): boolean {
   const textExtensions = [
-    '.txt', '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h',
-    '.cs', '.go', '.rs', '.php', '.rb', '.swift', '.kt', '.scala',
-    '.html', '.css', '.scss', '.less', '.xml', '.json', '.yaml', '.yml',
-    '.toml', '.sql', '.sh', '.bash', '.zsh', '.ps1', '.bat', '.cmd',
-    '.md', '.markdown', '.csv', '.log', '.ini', '.cfg', '.conf',
-    '.env', '.gitignore', '.dockerfile', '.vue', '.svelte',
-    '.r', '.m', '.lua', '.dart', '.ex', '.exs', '.hs', '.ml',
+    ".txt",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".py",
+    ".java",
+    ".cpp",
+    ".c",
+    ".h",
+    ".cs",
+    ".go",
+    ".rs",
+    ".php",
+    ".rb",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".html",
+    ".css",
+    ".scss",
+    ".less",
+    ".xml",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".sql",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".ps1",
+    ".bat",
+    ".cmd",
+    ".md",
+    ".markdown",
+    ".csv",
+    ".log",
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".env",
+    ".gitignore",
+    ".dockerfile",
+    ".vue",
+    ".svelte",
+    ".r",
+    ".m",
+    ".lua",
+    ".dart",
+    ".ex",
+    ".exs",
+    ".hs",
+    ".ml",
   ];
-  const ext = '.' + name.split('.').pop()?.toLowerCase();
+  const ext = "." + name.split(".").pop()?.toLowerCase();
   return textExtensions.includes(ext);
 }
 
 export function InputArea({ onSend, isStreaming = false, selectedModel, onModelChange }: InputAreaProps) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
+  const currentModel = MODELS.find((m) => m.id === selectedModel) || MODELS[0];
 
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + "px";
     }
   }, [input]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setModelPickerOpen(false);
+      if (e.key === "Escape") setModelPickerOpen(false);
     };
     if (modelPickerOpen) {
-      document.addEventListener('keydown', handleEsc);
-      return () => document.removeEventListener('keydown', handleEsc);
+      document.addEventListener("keydown", handleEsc);
+      return () => document.removeEventListener("keydown", handleEsc);
     }
   }, [modelPickerOpen]);
 
-  const addFiles = useCallback(async (newFiles: FileList | File[]) => {
-    const fileArray = Array.from(newFiles);
-    const remaining = MAX_FILES - files.length;
-    const toProcess = fileArray.slice(0, remaining);
+  const addFiles = useCallback(
+    async (newFiles: FileList | File[]) => {
+      const fileArray = Array.from(newFiles);
+      const remaining = MAX_FILES - files.length;
+      const toProcess = fileArray.slice(0, remaining);
 
-    const processed: AttachedFile[] = [];
-    for (const file of toProcess) {
-      if (file.size > MAX_FILE_SIZE) {
-        alert(`${file.name} terlalu besar (maks 10MB)`);
-        continue;
-      }
-      try {
-        if (isImageFile(file.type)) {
-          const dataUrl = await readFileAsDataURL(file);
-          processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
-        } else if (isTextFile(file.name)) {
-          const text = await readFileAsText(file);
-          const preview = text.slice(0, 200) + (text.length > 200 ? '...' : '');
-          processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
-        } else {
-          const dataUrl = await readFileAsDataURL(file);
-          processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
+      const processed: AttachedFile[] = [];
+      for (const file of toProcess) {
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`${file.name} terlalu besar (maks 10MB)`);
+          continue;
         }
-      } catch {
-        alert(`Gagal membaca ${file.name}`);
+        try {
+          if (isImageFile(file.type)) {
+            const dataUrl = await readFileAsDataURL(file);
+            processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
+          } else if (isTextFile(file.name)) {
+            const text = await readFileAsText(file);
+            const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
+            processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
+          } else {
+            const dataUrl = await readFileAsDataURL(file);
+            processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
+          }
+        } catch {
+          alert(`Gagal membaca ${file.name}`);
+        }
       }
-    }
-    setFiles(prev => [...prev, ...processed].slice(0, MAX_FILES));
-  }, [files.length]);
+      setFiles((prev) => [...prev, ...processed].slice(0, MAX_FILES));
+    },
+    [files.length],
+  );
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
     if ((!input.trim() && files.length === 0) || isStreaming) return;
-    onSend(input.trim() || '(File attached)', files.length > 0 ? files : undefined);
-    setInput('');
+    onSend(input.trim() || "(File attached)", files.length > 0 ? files : undefined);
+    setInput("");
     setFiles([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
@@ -140,15 +190,15 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
   };
 
   return (
-    <div className="relative bg-surface md:bg-transparent pb-[env(safe-area-inset-bottom,8px)] md:pb-5 border-t md:border-t-0 border-border/50 md:border-0">
+    <div className="relative bg-surface md:bg-transparent pb-8 md:pb-8 border-t md:border-t-0 border-border/50 md:border-0">
       <div className="max-w-3xl mx-auto px-3 md:px-8 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-xl bg-primary-subtle border border-primary/10 animate-message-in">
             <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
             <span className="text-xs font-medium text-primary">Lyra sedang berpikir...</span>
           </div>
@@ -185,12 +235,14 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
 
         {/* Input Box */}
         <div
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           className={`relative flex items-center gap-2 md:gap-3 bg-bg md:bg-surface border rounded-xl md:rounded-2xl px-3 py-1.5 md:px-4 md:py-2.5 shadow-soft md:shadow-medium mx-0 md:mx-4
-            input-focus-ring transition-all duration-200 ${dragOver ? 'border-primary ring-2 ring-primary/20' :
-            isStreaming ? 'border-primary/30' : 'border-border focus-within:border-primary/30'}`}
+            input-focus-ring transition-all duration-200 ${dragOver ? "border-primary ring-2 ring-primary/20" : isStreaming ? "border-primary/30" : "border-border focus-within:border-primary/30"}`}
         >
           {/* Model Selector */}
           <button
@@ -205,10 +257,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           </button>
 
           {/* Attachment */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-shrink-0 p-1 md:p-1.5 rounded-lg text-text-dim hover:text-primary hover:bg-primary-subtle transition-colors duration-200 mb-0.5 btn-press"
-          >
+          <button onClick={() => fileInputRef.current?.click()} className="flex-shrink-0 p-1 md:p-1.5 rounded-lg text-text-dim hover:text-primary hover:bg-primary-subtle transition-colors duration-200 mb-0.5 btn-press">
             <Paperclip size={14} className="md:hidden" />
             <Paperclip size={16} className="hidden md:block" />
           </button>
@@ -219,7 +268,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             className="hidden"
             onChange={(e) => {
               if (e.target.files) addFiles(e.target.files);
-              e.target.value = '';
+              e.target.value = "";
             }}
             accept="*/*"
           />
@@ -230,7 +279,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? 'Lyra sedang menjawab...' : 'Ketik pesan atau lampirkan file...'}
+            placeholder={isStreaming ? "Lyra sedang menjawab..." : "Ketik pesan atau lampirkan file..."}
             rows={1}
             disabled={isStreaming}
             className="flex-1 bg-transparent text-text text-[15px] placeholder:text-text-dim
@@ -253,10 +302,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
               disabled={!input.trim() && files.length === 0}
               className={`
                 flex-shrink-0 p-1.5 md:p-2 rounded-xl transition-all duration-200 mb-0.5 btn-press
-                ${input.trim() || files.length > 0
-                  ? 'bg-primary text-white hover:bg-primary-hover shadow-soft'
-                  : 'bg-border text-text-dim cursor-not-allowed'
-                }
+                ${input.trim() || files.length > 0 ? "bg-primary text-white hover:bg-primary-hover shadow-soft" : "bg-border text-text-dim cursor-not-allowed"}
               `}
             >
               <Send size={12} className="md:hidden" />
@@ -269,27 +315,21 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
         {modelPickerOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center">
             {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in"
-              onClick={() => setModelPickerOpen(false)}
-            />
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in" onClick={() => setModelPickerOpen(false)} />
 
             {/* Popup */}
             <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden animate-modal-in scale-100 transform transition-transform origin-bottom">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
                 <h3 className="text-base font-semibold text-text">Pilih model</h3>
-                <button
-                  onClick={() => setModelPickerOpen(false)}
-                  className="text-text-dim hover:text-text text-lg leading-none btn-press"
-                >
+                <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">
                   ✕
                 </button>
               </div>
 
               {/* Model List */}
               <div className="p-3 space-y-1.5">
-                {MODELS.map(model => (
+                {MODELS.map((model) => (
                   <button
                     key={model.id}
                     onClick={() => {
@@ -299,42 +339,29 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
                     className={`
                       w-full flex items-center gap-3 px-4 py-3.5 rounded-xl
                       transition-all duration-200 text-left btn-press
-                      ${selectedModel === model.id
-                        ? 'bg-primary-subtle border border-primary/20'
-                        : 'hover:bg-bg-alt border border-transparent'
-                      }
+                      ${selectedModel === model.id ? "bg-primary-subtle border border-primary/20" : "hover:bg-bg-alt border border-transparent"}
                     `}
                   >
                     {/* Radio indicator */}
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200
-                      ${selectedModel === model.id ? 'border-primary bg-primary' : 'border-border-light'}`}>
-                      {selectedModel === model.id && (
-                        <Check size={12} className="text-white" strokeWidth={3} />
-                      )}
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200
+                      ${selectedModel === model.id ? "border-primary bg-primary" : "border-border-light"}`}
+                    >
+                      {selectedModel === model.id && <Check size={12} className="text-white" strokeWidth={3} />}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`font-semibold text-sm ${selectedModel === model.id ? 'text-primary' : 'text-text'}`}>
-                          {model.name}
-                        </span>
-                        {model.badge === 'recommended' && (
+                        <span className={`font-semibold text-sm ${selectedModel === model.id ? "text-primary" : "text-text"}`}>{model.name}</span>
+                        {model.badge === "recommended" && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 font-semibold">
                             <Star size={10} className="fill-amber-400" />
                             Rekomendasi
                           </span>
                         )}
-                        {model.multimodal && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-accent-subtle text-accent font-medium">
-                            Multimodal
-                          </span>
-                        )}
-                        {model.reasoning && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary-subtle text-primary font-medium">
-                            Reasoning
-                          </span>
-                        )}
+                        {model.multimodal && <span className="px-1.5 py-0.5 rounded text-[10px] bg-accent-subtle text-accent font-medium">Multimodal</span>}
+                        {model.reasoning && <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary-subtle text-primary font-medium">Reasoning</span>}
                       </div>
                       <span className="text-xs text-text-dim">{model.desc}</span>
                     </div>
