@@ -108,12 +108,7 @@ export function AppShell() {
     setProjects(prev => [...prev, newProject]);
   };
 
-  const handleDeleteProject = (id: string) => {
-    setConversations(prev =>
-      prev.map(c => c.projectId === id ? { ...c, projectId: null } : c)
-    );
-    setProjects(prev => prev.filter(p => p.id !== id));
-  };
+
 
   const handleMoveToProject = (conversationId: string, projectId: string | null) => {
     setConversations(prev =>
