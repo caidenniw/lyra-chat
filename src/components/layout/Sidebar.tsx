@@ -1,5 +1,6 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut } from 'lucide-react';
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 
 export interface Project {
@@ -18,56 +19,60 @@ interface SidebarProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, newTitle: string) => void;
   onNewChat: () => void;
   onCreateProject: (name: string) => void;
-
   onMoveToProject: (conversationId: string, projectId: string | null) => void;
 }
 
-export function Sidebar({ 
+export function Sidebar({
   onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId,
-  onSelect, onDelete, onNewChat,
+  onSelect, onDelete, onRename, onNewChat,
   onCreateProject, onMoveToProject,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; conversationId: string } | null>(null);
-  const [moveMenu, setMoveMenu] = useState<{ conversationId: string } | null>(null);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [moveMenu, setMoveMenu] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const newProjectRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
-    if (showNewProject && newProjectRef.current) {
-      newProjectRef.current.focus();
-    }
+    if (showNewProject && newProjectRef.current) newProjectRef.current.focus();
   }, [showNewProject]);
 
-  // Close context menu on outside click
   useEffect(() => {
-    const handleClick = () => { setContextMenu(null); setMoveMenu(null); };
-    if (contextMenu || moveMenu) {
+    if (renameId && renameInputRef.current) renameInputRef.current.focus();
+  }, [renameId]);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleClick = () => { setActiveMenu(null); setMoveMenu(null); };
+    if (activeMenu || moveMenu) {
       document.addEventListener('click', handleClick);
       return () => document.removeEventListener('click', handleClick);
     }
-  }, [contextMenu, moveMenu]);
+  }, [activeMenu, moveMenu]);
 
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setContextMenu(null); setMoveMenu(null); setShowNewProject(false); }
+      if (e.key === 'Escape') { setActiveMenu(null); setMoveMenu(null); setShowNewProject(false); setRenameId(null); }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, []);
 
-  // Filter conversations by search
   const filteredConversations = search
     ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
     : conversations;
 
-  // Group conversations
   const ungrouped = filteredConversations.filter(c => !c.projectId);
   const groupedByProject = (projectId: string) => filteredConversations.filter(c => c.projectId === projectId);
 
@@ -83,25 +88,176 @@ export function Sidebar({
     }
   };
 
-  const handleContextMenu = (e: React.MouseEvent, conversationId: string) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, conversationId });
+  const startRename = (convId: string, currentTitle: string) => {
+    setRenameId(convId);
+    setRenameValue(currentTitle);
+    setActiveMenu(null);
+  };
+
+  const confirmRename = () => {
+    if (renameId && renameValue.trim()) {
+      onRename(renameId, renameValue.trim());
+    }
+    setRenameId(null);
+    setRenameValue('');
+  };
+
+  const handleMenuToggle = (e: React.MouseEvent, convId: string) => {
+    e.stopPropagation();
+    setActiveMenu(activeMenu === convId ? null : convId);
     setMoveMenu(null);
   };
 
-  const handleMoveClick = (conversationId: string) => {
-    setContextMenu(null);
-    setMoveMenu({ conversationId });
+  const handleMoveClick = (convId: string) => {
+    setMoveMenu(convId);
   };
 
   const handleMove = (conversationId: string, projectId: string | null) => {
     onMoveToProject(conversationId, projectId);
     setMoveMenu(null);
+    setActiveMenu(null);
+  };
+
+  // Render conversation item with three-dot menu
+  const renderConvItem = (conv: { id: string; title: string; projectId?: string | null }) => {
+    const isRenaming = renameId === conv.id;
+    const isMenuOpen = activeMenu === conv.id;
+    const isMoveOpen = moveMenu === conv.id;
+
+    return (
+      <div key={conv.id} className="relative group">
+        {isRenaming ? (
+          /* Inline rename input */
+          <div className="flex items-center gap-1 px-2 py-1">
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmRename();
+                if (e.key === 'Escape') { setRenameId(null); setRenameValue(''); }
+              }}
+              onBlur={confirmRename}
+              className="flex-1 px-2 py-1 text-xs bg-bg border border-primary/30 rounded-lg outline-none"
+            />
+            <button onClick={confirmRename} className="p-0.5 text-primary hover:text-primary-light">
+              <Check size={12} />
+            </button>
+            <button onClick={() => { setRenameId(null); setRenameValue(''); }} className="p-0.5 text-text-dim hover:text-text">
+              <X size={12} />
+            </button>
+          </div>
+        ) : (
+          /* Normal chat item */
+          <button
+            onClick={() => onSelect(conv.id)}
+            className={`w-full flex items-center gap-1 pr-1 text-left rounded-lg text-xs transition-colors btn-press ${
+              activeId === conv.id
+                ? 'bg-primary/10 text-primary font-medium py-1.5 px-3'
+                : 'text-text-muted hover:text-text hover:bg-bg-alt py-1.5 px-3'
+            }`}
+          >
+            <span className="flex-1 truncate">{conv.title}</span>
+            {/* Three-dot menu button — always visible on mobile, hover on desktop */}
+            <button
+              ref={(el) => { menuButtonRefs.current[conv.id] = el; }}
+              onClick={(e) => handleMenuToggle(e, conv.id)}
+              className={`p-0.5 rounded text-text-dim hover:text-text hover:bg-border/50 transition-colors ${
+                isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 max-md:opacity-100'
+              }`}
+            >
+              <MoreVertical size={12} />
+            </button>
+          </button>
+        )}
+
+        {/* Dropdown menu */}
+        <AnimatePresence>
+          {isMenuOpen && !isMoveOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-2 top-full z-[150] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[160px]"
+            >
+              <button
+                onClick={() => startRename(conv.id, conv.title)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
+              >
+                <Edit3 size={14} />
+                Ganti nama
+              </button>
+              <button
+                onClick={() => handleMoveClick(conv.id)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
+              >
+                <FolderInput size={14} />
+                Pindah ke Proyek
+              </button>
+              <div className="mx-2 my-1 border-t border-border" />
+              <button
+                onClick={() => { onDelete(conv.id); setActiveMenu(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={14} />
+                Hapus
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Move to Project sub-menu */}
+        <AnimatePresence>
+          {isMoveOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-2 top-full z-[150] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[180px] max-h-[200px] overflow-y-auto"
+            >
+              <div className="px-3 py-1.5 text-[10px] text-text-dim font-medium uppercase">Pindahkan ke</div>
+              <button
+                onClick={() => handleMove(conv.id, null)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
+              >
+                <Clock size={14} />
+                Riwayat
+              </button>
+              {projects.map(project => (
+                <button
+                  key={project.id}
+                  onClick={() => handleMove(conv.id, project.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
+                >
+                  <FolderOpen size={14} />
+                  {project.name}
+                </button>
+              ))}
+              {projects.length === 0 && (
+                <div className="px-3 py-2 text-xs text-text-dim italic">Buat proyek dulu di Pustaka</div>
+              )}
+              <div className="mx-2 my-1 border-t border-border" />
+              <button
+                onClick={() => setMoveMenu(null)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-dim hover:bg-bg-alt transition-colors"
+              >
+                ← Kembali
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   };
 
   return (
     <>
-      <aside className="w-[260px] h-full bg-surface border-r border-border flex flex-col relative animate-slide-in-left max-md:pt-12">
+      <aside className="w-[260px] h-full bg-surface border-r border-border flex flex-col relative max-md:pt-12">
         {/* Header */}
         <div className="px-4 pb-3 pt-4 md:pt-4">
           <div className="flex items-center justify-between mb-4">
@@ -231,24 +387,11 @@ export function Sidebar({
 
                 {/* Conversations in project */}
                 {expandedProjects[project.id] && (
-                  <div className="pl-12 pr-2">
+                  <div className="pl-6 pr-1">
                     {groupedByProject(project.id).length === 0 && (
                       <div className="text-[10px] text-text-dim py-1 italic">Belum ada percakapan</div>
                     )}
-                    {groupedByProject(project.id).map(conv => (
-                      <button
-                        key={conv.id}
-                        onClick={() => onSelect(conv.id)}
-                        onContextMenu={(e) => handleContextMenu(e, conv.id)}
-                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs truncate transition-colors btn-press ${
-                          activeId === conv.id
-                            ? 'bg-primary/10 text-primary font-medium'
-                            : 'text-text-muted hover:text-text hover:bg-bg-alt'
-                        }`}
-                      >
-                        {conv.title}
-                      </button>
-                    ))}
+                    {groupedByProject(project.id).map(conv => renderConvItem(conv))}
                   </div>
                 )}
               </div>
@@ -264,27 +407,14 @@ export function Sidebar({
               <span className="font-medium">Riwayat</span>
             </button>
 
-            <div className="px-2">
+            <div className="px-1">
               {ungrouped.length === 0 && !search && (
                 <div className="text-[10px] text-text-dim py-2 italic">Belum ada percakapan</div>
               )}
               {ungrouped.length === 0 && search && (
                 <div className="text-[10px] text-text-dim py-2 italic">Tidak ditemukan</div>
               )}
-              {ungrouped.map(conv => (
-                <button
-                  key={conv.id}
-                  onClick={() => onSelect(conv.id)}
-                  onContextMenu={(e) => handleContextMenu(e, conv.id)}
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs truncate transition-colors btn-press ${
-                    activeId === conv.id
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-text-muted hover:text-text hover:bg-bg-alt'
-                  }`}
-                >
-                  {conv.title}
-                </button>
-              ))}
+              {ungrouped.map(conv => renderConvItem(conv))}
             </div>
           </div>
         </nav>
@@ -331,78 +461,6 @@ export function Sidebar({
           </div>
         </div>
       </aside>
-
-      {/* Right-click Context Menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-[200] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[160px] animate-modal-in"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => {
-              const conv = conversations.find(c => c.id === contextMenu.conversationId);
-              if (conv) {
-                // TODO: implement rename
-                setContextMenu(null);
-              }
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-          >
-            <Edit3 size={14} />
-            Ganti nama
-          </button>
-          <button
-            onClick={() => handleMoveClick(contextMenu.conversationId)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-          >
-            <FolderInput size={14} />
-            Pindah ke Proyek
-          </button>
-          <div className="mx-2 my-1 border-t border-border" />
-          <button
-            onClick={() => { onDelete(contextMenu.conversationId); setContextMenu(null); }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 size={14} />
-            Hapus
-          </button>
-        </div>
-      )}
-
-      {/* Move to Project Menu */}
-      {moveMenu && (
-        <div
-          className="fixed z-[200] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[180px] max-h-[200px] overflow-y-auto animate-modal-in"
-          style={{
-            left: contextMenu?.x || 100,
-            top: contextMenu?.y || 100,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-3 py-1.5 text-[10px] text-text-dim font-medium uppercase">Pindahkan ke</div>
-          <button
-            onClick={() => handleMove(moveMenu.conversationId, null)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-          >
-            <Clock size={14} />
-            Riwayat
-          </button>
-          {projects.map(project => (
-            <button
-              key={project.id}
-              onClick={() => handleMove(moveMenu.conversationId, project.id)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors"
-            >
-              <FolderOpen size={14} />
-              {project.name}
-            </button>
-          ))}
-          {projects.length === 0 && (
-            <div className="px-3 py-2 text-xs text-text-dim italic">Buat proyek dulu di Pustaka</div>
-          )}
-        </div>
-      )}
     </>
   );
 }

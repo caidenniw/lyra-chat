@@ -103,6 +103,9 @@ export function AppShell() {
       setActiveConversationId(conversations.find(c => c.id !== id)?.id || null);
     }
   };
+  const handleRenameConversation = (id: string, newTitle: string) => {
+    setConversations(prev => prev.map(c => c.id === id ? { ...c, title: newTitle } : c));
+  };
 
   const handleCreateProject = (name: string) => {
     const newProject: Project = {
@@ -145,6 +148,7 @@ export function AppShell() {
             activeId={activeConversationId}
             onSelect={handleSelectConversation}
             onDelete={handleDeleteConversation}
+            onRename={handleRenameConversation}
             onNewChat={handleNewChat}
             onCreateProject={handleCreateProject}
             onMoveToProject={handleMoveToProject}
@@ -181,6 +185,7 @@ export function AppShell() {
                 activeId={activeConversationId}
                 onSelect={handleSelectConversation}
                 onDelete={handleDeleteConversation}
+                onRename={handleRenameConversation}
                 onNewChat={handleNewChat}
                 onCreateProject={handleCreateProject}
                 onMoveToProject={handleMoveToProject}
