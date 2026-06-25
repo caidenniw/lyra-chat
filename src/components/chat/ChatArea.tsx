@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, UIEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { UIEvent } from 'react';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../layout/AppShell';
 
