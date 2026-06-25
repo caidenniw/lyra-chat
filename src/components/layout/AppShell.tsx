@@ -40,7 +40,7 @@ export interface Conversation {
 export function AppShell() {
   const { user, signOut } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([
     {
