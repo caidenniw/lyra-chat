@@ -143,7 +143,7 @@ export function AppShell() {
           onDelete={handleDeleteConversation}
           onNewChat={handleNewChat}
           onCreateProject={handleCreateProject}
-          onDeleteProject={handleDeleteProject}
+
           onMoveToProject={handleMoveToProject}
         />
       </div>
