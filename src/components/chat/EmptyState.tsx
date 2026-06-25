@@ -49,7 +49,11 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
             <Sparkles size={28} className="text-white hidden md:block" />
           </div>
           <h1 className="text-lg md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
-            {user ? `Halo, ${user.email?.split('@')[0]} 👋` : 'Halo! 👋'}
+            {(() => {
+              const h = new Date().getHours();
+              const time = h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat malam';
+              return user ? `${time}, ${user.email?.split('@')[0]}` : time;
+            })()}
           </h1>
           <p className="text-text-muted text-[11px] md:text-base animate-message-in" style={{ animationDelay: '0.15s' }}>
             Ada yang bisa saya bantu hari ini?
