@@ -1,4 +1,4 @@
-import { Sparkles, Clock, Lightbulb, CheckSquare, Languages, Paperclip } from 'lucide-react';
+import { Sparkles, Clock, Lightbulb, CheckSquare, Languages } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 
@@ -61,12 +61,8 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
         </div>
 
         {/* Saved Prompts header — hidden on very small screens */}
-        <div className="hidden md:flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-text-muted">✨ Prompt tersimpan</span>
-          <button className="flex items-center gap-1.5 text-xs text-text-muted hover:text-primary transition-colors btn-press">
-            <Paperclip size={12} />
-            <span>Lampirkan file</span>
-          </button>
+        <div className="hidden md:flex items-center mb-3">
+          <span className="text-sm font-medium text-text-muted">Prompt tersimpan</span>
         </div>
 
         {/* Cards — 2x2 grid on mobile & desktop */}
