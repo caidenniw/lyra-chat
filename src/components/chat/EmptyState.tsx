@@ -30,8 +30,8 @@ const SAVED_PROMPTS = [
 
 export function EmptyState({ onSend }: EmptyStateProps) {
   return (
-    <div className="md:flex-1 flex items-start md:items-center justify-center px-3 md:px-4 pt-6 md:pt-4 pb-2 overflow-y-auto">
-      <div className="w-full max-w-2xl">
+    <div className="flex-1 flex items-center justify-center px-3 md:px-4 py-4 overflow-y-auto">
+      <div className="w-full max-w-2xl -mt-8 md:mt-0">
         {/* Greeting — compact on mobile */}
         <div className="text-center mb-4 md:mb-8">
           <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary-light mx-auto mb-2 md:mb-5 flex items-center justify-center shadow-card animate-message-in">
