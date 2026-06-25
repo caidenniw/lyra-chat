@@ -69,7 +69,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
         )}
 
         {/* Bubble */}
-        <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-200 max-w-full min-w-0 overflow-x-auto ${
+        <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-300 max-w-full min-w-0 overflow-x-auto ${
           isUser
             ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
             : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'

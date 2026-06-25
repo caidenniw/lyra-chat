@@ -65,7 +65,7 @@ export function ChatArea({ messages, streamingMessageId }: ChatAreaProps) {
         <div className="sticky bottom-6 flex justify-center w-full pointer-events-none pb-2">
           <button
             onClick={scrollToBottom}
-            className="pointer-events-auto flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface border border-border shadow-medium text-text-dim hover:text-text hover:bg-bg-alt transition-all duration-200 animate-fade-in z-50 btn-press"
+            className="pointer-events-auto flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface border border-border shadow-medium text-text-dim hover:text-text hover:bg-bg-alt transition-all duration-300 animate-fade-in z-50 btn-press"
             aria-label="Scroll to bottom"
           >
             <ArrowDown size={18} className="md:hidden" />

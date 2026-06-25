@@ -131,10 +131,10 @@ export function AppShell() {
       <div 
         className={`
         max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
-        max-md:transition-transform max-md:duration-300 max-md:ease-[cubic-bezier(0.16,1,0.3,1)]
+        max-md:transition-transform max-md:duration-400 max-md:ease-[cubic-bezier(0.16,1,0.3,1)]
         ${sidebarOpen ? 'max-md:translate-x-0 shadow-2xl' : 'max-md:-translate-x-full'}
         
-        md:relative md:h-full md:transition-all md:duration-300 md:ease-[cubic-bezier(0.16,1,0.3,1)]
+        md:relative md:h-full md:transition-all md:duration-400 md:ease-[cubic-bezier(0.16,1,0.3,1)]
         ${sidebarOpen ? 'md:w-[260px] md:translate-x-0 md:opacity-100' : 'md:w-0 md:-translate-x-10 md:opacity-0 md:overflow-hidden'}
       `}
       >

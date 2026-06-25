@@ -104,7 +104,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-all duration-200 text-text font-medium text-sm btn-press disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-all duration-300 text-text font-medium text-sm btn-press disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -155,7 +155,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all duration-200 btn-press disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium text-sm transition-all duration-300 btn-press disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -190,7 +190,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {/* Skip / Continue as Guest */}
           <button
             onClick={onClose}
-            className="w-full mt-3 px-4 py-2.5 rounded-xl text-sm text-text-dim hover:text-text-muted hover:bg-bg-alt transition-all duration-200"
+            className="w-full mt-3 px-4 py-2.5 rounded-xl text-sm text-text-dim hover:text-text-muted hover:bg-bg-alt transition-all duration-300"
           >
             Lanjutkan tanpa akun →
           </button>

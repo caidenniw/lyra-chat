@@ -240,7 +240,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           onDrop={handleDrop}
           className={`flex items-center gap-2 md:gap-3 bg-surface border border-border rounded-2xl md:rounded-3xl
             px-3 py-1.5 md:px-4 md:py-2.5 mx-0 md:mx-4
-            input-focus-ring transition-all duration-200
+            input-focus-ring transition-all duration-300
             ${dragOver ? 'border-primary ring-2 ring-primary/20' : isStreaming ? 'border-primary/30' : 'focus-within:border-primary/30'}`}
         >
           {/* Attachment */}

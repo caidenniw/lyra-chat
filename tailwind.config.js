@@ -75,10 +75,10 @@ export default {
         }
       },
       animation: {
-        'fade-in': 'fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        'slide-in-left': 'slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        'modal-in': 'scale-up 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        'message-in': 'message-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        'fade-in': 'fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-in-left': 'slide-in-left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'modal-in': 'scale-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'message-in': 'message-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },
