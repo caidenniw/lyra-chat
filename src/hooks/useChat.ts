@@ -74,8 +74,6 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
     setStreamingMessageId(assistantMsg.id);
 
     // Build API messages
-    const isContinuing = userContent.trim().toLowerCase().match(/^(lanjut|lanjutkan|sambung|continue)(\s.*)?$/);
-    
     const apiMessages: ChatMessage[] = [
       {
         role: 'system',
@@ -134,6 +132,7 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       });
       finalUserMessage = { role: 'user', content: JSON.stringify(contentParts) };
     } else {
+      const isContinuing = userContent.trim().toLowerCase().match(/^(lanjut|lanjutkan|sambung|continue)(\s.*)?$/);
       finalUserMessage = { 
         role: 'user', 
         content: isContinuing 
