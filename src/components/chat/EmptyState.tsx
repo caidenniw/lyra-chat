@@ -1,4 +1,4 @@
-import { Sparkles, Clock, Lightbulb, CheckSquare, Paperclip } from 'lucide-react';
+import { Sparkles, Clock, Lightbulb, CheckSquare, Languages, Paperclip } from 'lucide-react';
 
 interface EmptyStateProps {
   onSend: (content: string) => void;
@@ -25,6 +25,13 @@ const SAVED_PROMPTS = [
     description: 'Analisis kode dan temukan potensi bug.',
     prompt: 'Tolong review kode ini, temukan potensi bug dan berikan saran perbaikan.',
     color: 'bg-green-50 text-green-500',
+  },
+  {
+    icon: Languages,
+    title: 'Terjemahkan',
+    description: 'Terjemahkan teks ke bahasa lain.',
+    prompt: 'Tolong terjemahkan teks berikut ke bahasa Indonesia dengan natural dan akurat.',
+    color: 'bg-purple-50 text-purple-500',
   },
 ];
 
@@ -55,22 +62,22 @@ export function EmptyState({ onSend }: EmptyStateProps) {
           </button>
         </div>
 
-        {/* Cards — horizontal rows on mobile, 3-col grid on desktop */}
-        <div className="flex flex-col gap-1.5 md:gap-3 md:grid md:grid-cols-3">
+        {/* Cards — 2x2 grid on mobile & desktop */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           {SAVED_PROMPTS.map((item, i) => (
             <button
               key={i}
               onClick={() => onSend(item.prompt)}
-              className="card-hover flex items-center gap-3 p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-surface border border-border
+              className="card-hover flex items-start gap-2.5 p-3 md:p-4 rounded-xl md:rounded-2xl bg-surface border border-border
                 hover:border-primary/20 text-left group animate-message-in"
               style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: 'both' }}
             >
-              <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl ${item.color} flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}>
-                <item.icon size={16} className="md:w-[18px] md:h-[18px]" />
+              <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl ${item.color} flex-shrink-0 flex items-center justify-center`}>
+                <item.icon size={16} />
               </div>
               <div className="min-w-0">
-                <div className="text-xs md:text-sm font-medium text-text truncate">{item.title}</div>
-                <div className="text-[10px] md:text-xs text-text-muted leading-tight truncate">{item.description}</div>
+                <div className="text-[11px] md:text-sm font-medium text-text leading-tight">{item.title}</div>
+                <div className="text-[10px] md:text-xs text-text-muted leading-tight mt-0.5 line-clamp-2">{item.description}</div>
               </div>
             </button>
           ))}
