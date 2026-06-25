@@ -153,17 +153,17 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
           setStreamingMessageId(null);
         },
         onError: (error) => {
-          // Graceful error messages — never show raw API errors
-          let friendlyError = '⚠️ Maaf, terjadi gangguan. Coba kirim ulang.';
-          if (error.includes('503') || error.includes('502')) {
-            friendlyError = '⚠️ Model sedang sibuk. Coba beberapa saat lagi.';
+          console.error("Chat Error:", error);
+          // Graceful error messages but append raw error for debugging
+          let friendlyError = `⚠️ Maaf, terjadi gangguan (${error}). Coba kirim ulang.`;
+          
+          if (error.includes('503') || error.includes('502') || error.includes('504')) {
+            friendlyError = `⚠️ Model sedang sibuk atau timeout. Coba gunakan model Luma. (Err: ${error.substring(0, 30)})`;
           } else if (error.includes('429') || error.includes('rate')) {
-            friendlyError = '⚠️ Terlalu banyak permintaan. Tunggu sebentar.';
+            friendlyError = '⚠️ Terlalu banyak permintaan ke model ini. Tunggu sebentar.';
           } else if (error.includes('network') || error.includes('fetch') || error.includes('Failed')) {
             friendlyError = '⚠️ Koneksi terputus. Periksa internetmu.';
-          } else if (error.includes('400')) {
-            friendlyError = '⚠️ Format pesan tidak valid. Coba tanpa lampiran.';
-          }
+          } 
 
           setMessages(prev =>
             prev.map(m =>
