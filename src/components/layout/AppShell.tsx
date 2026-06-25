@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
@@ -126,53 +127,85 @@ export function AppShell() {
     <div className="h-[100dvh] flex overflow-hidden bg-bg">
       {/* Auth Modal */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
-      <div 
-        className={`
-        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
-        max-md:transition-transform max-md:duration-400 max-md:ease-[cubic-bezier(0.16,1,0.3,1)]
-        ${sidebarOpen ? 'max-md:translate-x-0 shadow-2xl' : 'max-md:-translate-x-full'}
-        
-        md:relative md:h-full md:transition-all md:duration-400 md:ease-[cubic-bezier(0.16,1,0.3,1)]
-        ${sidebarOpen ? 'md:w-[260px] md:translate-x-0 md:opacity-100' : 'md:w-0 md:-translate-x-10 md:opacity-0 md:overflow-hidden'}
-      `}
+      {/* Desktop sidebar — spring animated width */}
+      <motion.div
+        animate={{ width: sidebarOpen ? 260 : 0, opacity: sidebarOpen ? 1 : 0, x: sidebarOpen ? 0 : -40 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="hidden md:block relative h-full z-10 overflow-hidden flex-shrink-0"
       >
-        <Sidebar
-          onToggle={() => setSidebarOpen(false)}
-          user={user}
-          onAuthModalOpen={() => setAuthModalOpen(true)}
-          onSignOut={signOut}
-          conversations={conversations}
-          projects={projects}
-          activeId={activeConversationId}
-          onSelect={handleSelectConversation}
-          onDelete={handleDeleteConversation}
-          onNewChat={handleNewChat}
-          onCreateProject={handleCreateProject}
+        <div className="w-[260px] h-full">
+          <Sidebar
+            onToggle={() => setSidebarOpen(false)}
+            user={user}
+            onAuthModalOpen={() => setAuthModalOpen(true)}
+            onSignOut={signOut}
+            conversations={conversations}
+            projects={projects}
+            activeId={activeConversationId}
+            onSelect={handleSelectConversation}
+            onDelete={handleDeleteConversation}
+            onNewChat={handleNewChat}
+            onCreateProject={handleCreateProject}
+            onMoveToProject={handleMoveToProject}
+          />
+        </div>
+      </motion.div>
 
-          onMoveToProject={handleMoveToProject}
-        />
-      </div>
+      {/* Mobile sidebar — slide from left */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+              className="fixed inset-y-0 left-0 z-50 md:hidden shadow-2xl"
+            >
+              <Sidebar
+                onToggle={() => setSidebarOpen(false)}
+                user={user}
+                onAuthModalOpen={() => setAuthModalOpen(true)}
+                onSignOut={signOut}
+                conversations={conversations}
+                projects={projects}
+                activeId={activeConversationId}
+                onSelect={handleSelectConversation}
+                onDelete={handleDeleteConversation}
+                onNewChat={handleNewChat}
+                onCreateProject={handleCreateProject}
+                onMoveToProject={handleMoveToProject}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden animate-fade-in"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Floating sidebar toggle — visible when sidebar is closed */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="fixed top-3 left-3 z-30 p-2 rounded-xl bg-surface border border-border
-            shadow-soft hover:bg-bg-alt text-text-muted hover:text-text btn-press animate-fade-in"
-        >
-          <Menu size={18} />
-        </button>
-      )}
+      {/* Floating sidebar toggle */}
+      <AnimatePresence>
+        {!sidebarOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            onClick={() => setSidebarOpen(true)}
+            className="fixed top-3 left-3 z-30 p-2 rounded-xl bg-surface border border-border
+              shadow-soft hover:bg-bg-alt text-text-muted hover:text-text btn-press"
+          >
+            <Menu size={18} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {hasMessages ? (

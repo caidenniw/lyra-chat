@@ -1,5 +1,6 @@
 import { Send, Paperclip, Square, X, FileText, ChevronDown, Check, Star } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { AttachedFile } from "../layout/AppShell";
 import { MODELS } from "../../lib/ai/models";
 
@@ -288,14 +289,28 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           </button>
         </div>
 
-        {/* Model Picker — modal */}
-        {modelPickerOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in" onClick={() => setModelPickerOpen(false)} />
-            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden animate-modal-in">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
-                <h3 className="text-base font-semibold text-text">Pilih model</h3>
-                <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">✕</button>
+        {/* Model Picker — framer-motion modal */}
+        <AnimatePresence>
+          {modelPickerOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+                onClick={() => setModelPickerOpen(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
+                  <h3 className="text-base font-semibold text-text">Pilih model</h3>
+                  <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">✕</button>
               </div>
               <div className="p-3 space-y-1.5">
                 {MODELS.map((model) => (
@@ -322,9 +337,10 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           </div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Sparkles, Clock, Lightbulb, CheckSquare, Languages, Paperclip } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface EmptyStateProps {
   onSend: (content: string) => void;
@@ -63,14 +64,25 @@ export function EmptyState({ onSend }: EmptyStateProps) {
         </div>
 
         {/* Cards — 2x2 grid on mobile & desktop */}
-        <div className="grid grid-cols-2 gap-2 md:gap-3">
+        <motion.div
+          className="grid grid-cols-2 gap-2 md:gap-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+        >
           {SAVED_PROMPTS.map((item, i) => (
-            <button
+            <motion.button
               key={i}
+              variants={{
+                hidden: { opacity: 0, y: 12 },
+                visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+              }}
               onClick={() => onSend(item.prompt)}
               className="card-hover flex items-start gap-2.5 p-3 md:p-4 rounded-xl md:rounded-2xl bg-surface border border-border
-                hover:border-primary/20 text-left group animate-message-in"
-              style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: 'both' }}
+                hover:border-primary/20 text-left group"
             >
               <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl ${item.color} flex-shrink-0 flex items-center justify-center`}>
                 <item.icon size={16} />
@@ -79,9 +91,9 @@ export function EmptyState({ onSend }: EmptyStateProps) {
                 <div className="text-[11px] md:text-sm font-medium text-text leading-tight">{item.title}</div>
                 <div className="text-[10px] md:text-xs text-text-muted leading-tight mt-0.5 line-clamp-2">{item.description}</div>
               </div>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
