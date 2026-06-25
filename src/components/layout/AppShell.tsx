@@ -119,7 +119,7 @@ export function AppShell() {
   const hasMessages = activeMessages.length > 0;
 
   return (
-    <div className="h-screen flex overflow-hidden bg-bg">
+    <div className="h-[100dvh] flex overflow-hidden bg-bg">
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
       <div className={`
         max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
@@ -162,7 +162,7 @@ export function AppShell() {
         </button>
       )}
 
-      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {hasMessages ? (
           <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} />
         ) : (
