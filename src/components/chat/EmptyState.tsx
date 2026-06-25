@@ -1,6 +1,7 @@
-import { Sparkles, Clock, Lightbulb, CheckSquare, Languages } from 'lucide-react';
+import { Clock, Lightbulb, CheckSquare, Languages } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
+import logoIcon from '../../assets/gambar2.png';
 
 interface EmptyStateProps {
   onSend: (content: string) => void;
@@ -44,9 +45,8 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
       <div className="w-full max-w-2xl -mt-8 md:mt-0">
         {/* Greeting — compact on mobile */}
         <div className="text-center mb-4 md:mb-8">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary-light mx-auto mb-2 md:mb-5 flex items-center justify-center shadow-card animate-message-in">
-            <Sparkles size={18} className="text-white md:hidden" />
-            <Sparkles size={28} className="text-white hidden md:block" />
+          <div className="w-10 h-10 md:w-16 md:h-16 mx-auto mb-2 md:mb-5 animate-message-in">
+            <img src={logoIcon} alt="Lyra" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-lg md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
             {(() => {

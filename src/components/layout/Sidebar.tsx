@@ -2,6 +2,7 @@ import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRig
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
+import logoIcon from '../../assets/gambar2.png';
 
 export interface Project {
   id: string;
@@ -262,9 +263,7 @@ export function Sidebar({
         <div className="px-4 pb-3 pt-4 md:pt-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-soft">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
+              <img src={logoIcon} alt="Lyra" className="w-8 h-8 rounded-xl object-contain" />
               <span className="font-semibold text-text text-base">Lyra</span>
             </div>
             <button
