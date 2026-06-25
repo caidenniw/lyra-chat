@@ -140,8 +140,8 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
   };
 
   return (
-    <div className="relative bg-transparent pb-1 md:pb-5">
-      <div className="max-w-3xl mx-auto px-2 md:px-8 pt-2 pb-1 md:pb-2">
+    <div className="relative bg-surface md:bg-transparent pb-[env(safe-area-inset-bottom,8px)] md:pb-5 border-t md:border-t-0 border-border/50 md:border-0">
+      <div className="max-w-3xl mx-auto px-3 md:px-8 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-xl bg-primary-subtle border border-primary/10 animate-message-in">
@@ -188,7 +188,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`relative flex items-center gap-2 md:gap-3 bg-surface border rounded-2xl md:rounded-3xl px-3 py-2 md:px-4 md:py-3 shadow-medium mx-3 md:mx-4
+          className={`relative flex items-center gap-2 md:gap-3 bg-bg md:bg-surface border rounded-xl md:rounded-2xl px-3 py-1.5 md:px-4 md:py-2.5 shadow-soft md:shadow-medium mx-0 md:mx-4
             input-focus-ring transition-all duration-200 ${dragOver ? 'border-primary ring-2 ring-primary/20' :
             isStreaming ? 'border-primary/30' : 'border-border focus-within:border-primary/30'}`}
         >
