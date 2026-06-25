@@ -1,7 +1,12 @@
+import { AuthProvider } from './contexts/AuthContext';
 import { AppShell } from './components/layout/AppShell';
 
 function App() {
-  return <AppShell />;
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  );
 }
 
 export default App;

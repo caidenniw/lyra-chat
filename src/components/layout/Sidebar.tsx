@@ -1,5 +1,6 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose } from 'lucide-react';
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 
 export interface Project {
   id: string;
@@ -9,6 +10,9 @@ export interface Project {
 
 interface SidebarProps {
   onToggle: () => void;
+  user: User | null;
+  onAuthModalOpen: () => void;
+  onSignOut: () => void;
   conversations: Array<{ id: string; title: string; projectId?: string | null }>;
   projects: Project[];
   activeId: string | null;
@@ -21,7 +25,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ 
-  onToggle, conversations, projects, activeId,
+  onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId,
   onSelect, onDelete, onNewChat,
   onCreateProject, onMoveToProject,
 }: SidebarProps) {
@@ -288,13 +292,42 @@ export function Sidebar({
         {/* User Profile */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft">
-              <span className="text-white font-bold text-xs">DA</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-text truncate">Deni Arya</div>
-              <div className="text-[10px] text-text-dim">AI Assistant • Free</div>
-            </div>
+            {user ? (
+              <>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft">
+                  <span className="text-white font-bold text-xs">
+                    {user.email?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text truncate">{user.email}</div>
+                  <div className="text-[10px] text-text-dim">Akun Aktif</div>
+                </div>
+                <button
+                  onClick={onSignOut}
+                  className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-bg-alt transition-colors btn-press"
+                  title="Keluar"
+                >
+                  <LogOut size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-8 h-8 rounded-xl bg-bg-alt border border-border flex items-center justify-center">
+                  <span className="text-text-dim text-xs font-medium">G</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text-muted">Guest Mode</div>
+                  <div className="text-[10px] text-text-dim">Chat tidak tersimpan</div>
+                </div>
+                <button
+                  onClick={onAuthModalOpen}
+                  className="text-[10px] text-primary hover:text-primary-light font-medium transition-colors btn-press"
+                >
+                  Login
+                </button>
+              </>
+            )}
           </div>
         </div>
       </aside>

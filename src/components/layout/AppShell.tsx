@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { AuthModal } from '../auth/AuthModal';
 import { Sidebar, type Project } from './Sidebar';
 import { ChatArea } from '../chat/ChatArea';
 import { InputArea } from '../chat/InputArea';
@@ -35,6 +37,8 @@ export interface Conversation {
 }
 
 export function AppShell() {
+  const { user, signOut } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [projects, setProjects] = useState<Project[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([
@@ -120,6 +124,9 @@ export function AppShell() {
 
   return (
     <div className="h-[100dvh] flex overflow-hidden bg-bg">
+      {/* Auth Modal */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
       <div 
         className={`
@@ -133,6 +140,9 @@ export function AppShell() {
       >
         <Sidebar
           onToggle={() => setSidebarOpen(false)}
+          user={user}
+          onAuthModalOpen={() => setAuthModalOpen(true)}
+          onSignOut={signOut}
           conversations={conversations}
           projects={projects}
           activeId={activeConversationId}
@@ -178,6 +188,19 @@ export function AppShell() {
           onModelChange={setSelectedModel}
         />
       </main>
+
+      {/* Guest Banner */}
+      {!user && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center gap-3 px-4 py-2.5 bg-primary/95 backdrop-blur-sm text-white text-xs md:text-sm animate-fade-in">
+          <span className="opacity-90">Chat akan hilang saat refresh.</span>
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 font-medium transition-colors btn-press"
+          >
+            Login untuk menyimpan
+          </button>
+        </div>
+      )}
     </div>
   );
 }
