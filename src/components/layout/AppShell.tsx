@@ -51,7 +51,7 @@ export function AppShell() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>('1');
   const [selectedModel, setSelectedModel] = useState('deepseek-v4-flash-free');
 
-  const { sendMessage, isStreaming, streamingMessageId, messages, setMessages } = useChat({ model: selectedModel, onModelChange: setSelectedModel });
+  const { sendMessage, isStreaming, streamingMessageId, messages } = useChat({ model: selectedModel, onModelChange: setSelectedModel });
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const activeMessages = messages.filter(m => m.conversationId === activeConversationId);

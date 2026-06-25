@@ -17,14 +17,14 @@ interface SidebarProps {
   onDelete: (id: string) => void;
   onNewChat: () => void;
   onCreateProject: (name: string) => void;
-  onDeleteProject: (id: string) => void;
+
   onMoveToProject: (conversationId: string, projectId: string | null) => void;
 }
 
 export function Sidebar({
   isOpen, onToggle, conversations, projects, activeId,
   onSelect, onDelete, onNewChat,
-  onCreateProject, onDeleteProject, onMoveToProject,
+  onCreateProject, onMoveToProject,
 }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
@@ -32,8 +32,7 @@ export function Sidebar({
   const [newProjectName, setNewProjectName] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; conversationId: string } | null>(null);
   const [moveMenu, setMoveMenu] = useState<{ conversationId: string } | null>(null);
-  const [editingProject, setEditingProject] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
+
   const newProjectRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,7 +53,7 @@ export function Sidebar({
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setContextMenu(null); setMoveMenu(null); setShowNewProject(false); setEditingProject(null); }
+      if (e.key === 'Escape') { setContextMenu(null); setMoveMenu(null); setShowNewProject(false); }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -314,8 +313,7 @@ export function Sidebar({
             onClick={() => {
               const conv = conversations.find(c => c.id === contextMenu.conversationId);
               if (conv) {
-                setEditingProject(contextMenu.conversationId);
-                setEditName(conv.title);
+                // TODO: implement rename
                 setContextMenu(null);
               }
             }}

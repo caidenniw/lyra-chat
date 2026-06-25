@@ -1,3 +1,4 @@
+import React from 'react';
 import { CodeBlock } from './CodeBlock';
 
 interface MarkdownRendererProps {
@@ -35,7 +36,7 @@ function parseMarkdown(content: string): Array<{ type: 'text' | 'code'; content:
 }
 
 // Render inline formatting (bold, italic, inline code, links)
-function renderInlineText(text: string): JSX.Element[] {
+function renderInlineText(text: string): React.ReactNode[] {
   // Split by markdown patterns
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
 
