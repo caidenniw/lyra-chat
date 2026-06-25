@@ -124,9 +124,18 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
 
         {/* User timestamp */}
         {isUser && (
-          <span className="text-[9px] md:text-[10px] text-text-dim mt-0.5 md:mt-1 px-1">
-            {message.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-          </span>
+          <div className="flex items-center justify-end gap-1.5 md:gap-2 mt-0.5 md:mt-1 px-1">
+            <span className="text-[9px] md:text-[10px] text-text-dim">
+              {message.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <button
+              onClick={handleCopy}
+              className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press flex items-center gap-1"
+              title="Salin pesan"
+            >
+              {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+            </button>
+          </div>
         )}
       </div>
 
