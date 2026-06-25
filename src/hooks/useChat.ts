@@ -74,10 +74,12 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
     setStreamingMessageId(assistantMsg.id);
 
     // Build API messages
+    const isContinuing = userContent.trim().toLowerCase().match(/^(lanjut|lanjutkan|sambung|continue)(\s.*)?$/);
+    
     const apiMessages: ChatMessage[] = [
       {
         role: 'system',
-        content: 'Kamu adalah Lyra, AI assistant yang cerdas dan membantu. Jawab dalam Bahasa Indonesia kecuali diminta bahasa lain. Gunakan format markdown jika diperlukan. Untuk kode, gunakan ```language\ncode\n```.',
+        content: 'Kamu adalah Lyra, AI assistant yang cerdas dan membantu. Jawab dalam Bahasa Indonesia kecuali diminta bahasa lain. Gunakan format markdown jika diperlukan.\nATURAN KODE: Jika membuat kode yang sangat panjang (seperti file HTML + CSS + JS sekaligus), PECAH menjadi beberapa bagian. Berikan satu bagian dulu, lalu tanyakan apakah user ingin melanjutkan ke bagian berikutnya. JANGAN memberikan kode raksasa dalam satu balasan.',
       },
     ];
 
@@ -132,7 +134,12 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       });
       finalUserMessage = { role: 'user', content: JSON.stringify(contentParts) };
     } else {
-      finalUserMessage = { role: 'user', content: userContent };
+      finalUserMessage = { 
+        role: 'user', 
+        content: isContinuing 
+          ? `${userContent}\n\n[INSTRUKSI SISTEM: Lanjutkan respons kamu sebelumnya TEPAT dari karakter atau baris terakhir yang terpotong. JANGAN mengulang kode atau penjelasan dari awal. Langsung sambung saja.]`
+          : userContent 
+      };
     }
 
     apiMessages.push(finalUserMessage);
