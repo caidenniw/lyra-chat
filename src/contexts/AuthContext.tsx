@@ -19,6 +19,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Ambil sesi awal
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -29,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
-        setLoading(false);
       }
     );
 
@@ -37,26 +41,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
+    if (!supabase) return { error: { message: 'Supabase belum dikonfigurasi.' } as AuthError };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
+    if (!supabase) return { error: { message: 'Supabase belum dikonfigurasi.' } as AuthError };
     const { error } = await supabase.auth.signUp({ email, password });
     return { error };
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+    if (!supabase) return { error: { message: 'Supabase belum dikonfigurasi.' } as AuthError };
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
     return { error };
   };
 
   const signOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
   };
 
@@ -69,8 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
