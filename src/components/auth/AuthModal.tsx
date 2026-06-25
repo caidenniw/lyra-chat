@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Loader2, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import logoIcon from '../../assets/gambar2.png';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -88,9 +89,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Header */}
         <div className="px-6 pt-8 pb-2 text-center">
           {/* Logo */}
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-medium">
-            <span className="text-white font-bold text-xl">L</span>
-          </div>
+          <img src={logoIcon} alt="Lyra" className="w-14 h-14 mx-auto mb-4 rounded-2xl object-contain" />
 
           <h2 className="text-xl font-bold text-text">
             {mode === 'login' ? 'Selamat datang kembali' : 'Buat akun baru'}
