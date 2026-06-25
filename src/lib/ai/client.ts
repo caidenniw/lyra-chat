@@ -67,13 +67,9 @@ export async function streamChat(
     const decoder = new TextDecoder();
     let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
+    const processBuffer = (flush = false) => {
       const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      buffer = flush ? '' : (lines.pop() || '');
 
       for (const line of lines) {
         const trimmed = line.trim();
@@ -82,7 +78,7 @@ export async function streamChat(
         const data = trimmed.slice(5).trim();
         if (data === '[DONE]') {
           callbacks.onDone();
-          return;
+          return true; // Indicate stream is complete
         }
 
         try {
@@ -95,6 +91,22 @@ export async function streamChat(
           // Skip malformed JSON lines
         }
       }
+      return false;
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        // Process any remaining data in buffer
+        if (buffer) {
+          processBuffer(true);
+        }
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const isDone = processBuffer(false);
+      if (isDone) return;
     }
 
     callbacks.onDone();

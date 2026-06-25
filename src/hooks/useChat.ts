@@ -154,15 +154,17 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
         },
         onError: (error) => {
           console.error("Chat Error:", error);
-          // Graceful error messages but append raw error for debugging
-          let friendlyError = `⚠️ Maaf, terjadi gangguan (${error}). Coba kirim ulang.`;
+          // Graceful error messages
+          let friendlyError = '⚠️ Maaf, terjadi gangguan saat terhubung ke AI. Silakan coba lagi.';
           
-          if (error.includes('503') || error.includes('502') || error.includes('504')) {
-            friendlyError = `⚠️ Model sedang sibuk atau timeout. Coba gunakan model Luma. (Err: ${error.substring(0, 30)})`;
+          if (error.includes('503') || error.includes('502') || error.includes('504') || error.includes('timeout')) {
+            friendlyError = '⚠️ Model sedang sibuk atau timeout. Sangat disarankan untuk beralih ke model **Luma** (MiMo) untuk performa lebih baik.';
+          } else if (error.includes('401') || error.includes('provider')) {
+            friendlyError = '⚠️ Terjadi gangguan pada penyedia layanan AI. Sangat disarankan untuk mencoba model **Luma** (MiMo).';
           } else if (error.includes('429') || error.includes('rate')) {
-            friendlyError = '⚠️ Terlalu banyak permintaan ke model ini. Tunggu sebentar.';
+            friendlyError = '⚠️ Terlalu banyak permintaan ke model ini. Silakan tunggu beberapa saat atau ganti model.';
           } else if (error.includes('network') || error.includes('fetch') || error.includes('Failed')) {
-            friendlyError = '⚠️ Koneksi terputus. Periksa internetmu.';
+            friendlyError = '⚠️ Koneksi terputus. Pastikan internet Anda stabil.';
           } 
 
           setMessages(prev =>
