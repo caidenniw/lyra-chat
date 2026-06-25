@@ -1,8 +1,10 @@
 import { Sparkles, Clock, Lightbulb, CheckSquare, Languages, Paperclip } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { User } from '@supabase/supabase-js';
 
 interface EmptyStateProps {
   onSend: (content: string) => void;
+  user?: User | null;
 }
 
 const SAVED_PROMPTS = [
@@ -36,7 +38,7 @@ const SAVED_PROMPTS = [
   },
 ];
 
-export function EmptyState({ onSend }: EmptyStateProps) {
+export function EmptyState({ onSend, user }: EmptyStateProps) {
   return (
     <div className="flex-1 flex items-center justify-center px-3 md:px-4 py-4 overflow-y-auto min-h-0">
       <div className="w-full max-w-2xl -mt-8 md:mt-0">
@@ -47,7 +49,7 @@ export function EmptyState({ onSend }: EmptyStateProps) {
             <Sparkles size={28} className="text-white hidden md:block" />
           </div>
           <h1 className="text-lg md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
-            Halo, Deni Arya 👋
+            {user ? `Halo, ${user.email?.split('@')[0]} 👋` : 'Halo! 👋'}
           </h1>
           <p className="text-text-muted text-[11px] md:text-base animate-message-in" style={{ animationDelay: '0.15s' }}>
             Ada yang bisa saya bantu hari ini?

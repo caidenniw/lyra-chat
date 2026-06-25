@@ -216,7 +216,7 @@ export function AppShell() {
         {hasMessages ? (
           <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} />
         ) : (
-          <EmptyState onSend={(content: string) => handleSendMessage(content)} />
+          <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
         )}
         <InputArea
           onSend={handleSendMessage}
