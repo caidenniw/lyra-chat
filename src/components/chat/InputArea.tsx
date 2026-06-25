@@ -233,45 +233,23 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           </div>
         )}
 
-        {/* Input Box */}
+        {/* ===== Input Box — Claude/GPT style ===== */}
         <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`relative flex items-center gap-1.5 md:gap-3 bg-bg md:bg-surface border rounded-xl md:rounded-2xl px-2.5 py-1 md:px-4 md:py-2 shadow-soft md:shadow-medium mx-0 md:mx-4
-            input-focus-ring transition-all duration-200 ${dragOver ? "border-primary ring-2 ring-primary/20" : isStreaming ? "border-primary/30" : "border-border focus-within:border-primary/30"}`}
+          className={`flex items-center gap-2 md:gap-3 bg-surface border border-border rounded-2xl md:rounded-3xl
+            px-3 py-1.5 md:px-4 md:py-2.5 mx-0 md:mx-4
+            input-focus-ring transition-all duration-200
+            ${dragOver ? 'border-primary ring-2 ring-primary/20' : isStreaming ? 'border-primary/30' : 'focus-within:border-primary/30'}`}
         >
-          {/* Model Selector */}
-          <button
-            onClick={() => setModelPickerOpen(true)}
-            className="flex-shrink-0 flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg
-              bg-bg-alt border border-border text-text-dim hover:text-text hover:border-primary/20
-              transition-all duration-200 text-[10px] md:text-[11px] font-medium btn-press"
-          >
-            <span className="truncate max-w-[45px] md:max-w-[60px]">{currentModel.name}</span>
-            <ChevronDown size={10} className="md:hidden" />
-            <ChevronDown size={12} className="hidden md:block" />
-          </button>
-
           {/* Attachment */}
-          <button onClick={() => fileInputRef.current?.click()} className="flex-shrink-0 p-1 md:p-1.5 rounded-lg text-text-dim hover:text-primary hover:bg-primary-subtle transition-colors duration-200 mb-0.5 btn-press">
-            <Paperclip size={14} className="md:hidden" />
-            <Paperclip size={16} className="hidden md:block" />
+          <button onClick={() => fileInputRef.current?.click()} className="flex-shrink-0 text-text-dim hover:text-primary transition-colors btn-press">
+            <Paperclip size={18} className="md:hidden" />
+            <Paperclip size={20} className="hidden md:block" />
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) addFiles(e.target.files);
-              e.target.value = "";
-            }}
-            accept="*/*"
-          />
+          <input ref={fileInputRef} type="file" multiple className="hidden"
+            onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} accept="*/*" />
 
           {/* Textarea */}
           <textarea
@@ -279,85 +257,61 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? "Lyra sedang menjawab..." : "Ketik pesan atau lampirkan file..."}
+            placeholder={isStreaming ? 'Lyra sedang menjawab...' : 'Ketik pesan...'}
             rows={1}
             disabled={isStreaming}
-            className="flex-1 bg-transparent text-text text-[14px] md:text-[15px] placeholder:text-text-dim
+            className="flex-1 bg-transparent text-text text-sm md:text-[15px] placeholder:text-text-dim
               resize-none outline-none max-h-[200px] leading-normal disabled:opacity-50"
           />
 
           {/* Send / Stop */}
           {isStreaming ? (
-            <button
-              className="flex-shrink-0 p-1.5 md:p-2 rounded-xl bg-accent text-white shadow-soft
-                hover:bg-accent-hover transition-all duration-200 btn-press"
-              title="Hentikan respons"
-            >
-              <Square size={12} fill="currentColor" className="md:hidden" />
-              <Square size={14} fill="currentColor" className="hidden md:block" />
+            <button className="flex-shrink-0 p-2 rounded-full bg-accent text-white btn-press" title="Hentikan">
+              <Square size={14} fill="currentColor" />
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() && files.length === 0}
-              className={`
-                flex-shrink-0 p-1.5 md:p-2 rounded-xl transition-all duration-200 btn-press
-                ${input.trim() || files.length > 0 ? "bg-primary text-white hover:bg-primary-hover shadow-soft" : "bg-border text-text-dim cursor-not-allowed"}
-              `}
-            >
-              <Send size={12} className="md:hidden" />
-              <Send size={14} className="hidden md:block" />
+            <button onClick={handleSubmit} disabled={!input.trim() && files.length === 0}
+              className={`flex-shrink-0 p-2 rounded-full transition-all btn-press
+                ${input.trim() || files.length > 0 ? 'bg-primary text-white hover:bg-primary-hover' : 'text-text-dim'}`}>
+              <Send size={14} />
             </button>
           )}
         </div>
 
-        {/* Model Picker — centered modal popup */}
+        {/* ===== Model Selector — below input, Claude style ===== */}
+        <div className="flex justify-center mt-2">
+          <button onClick={() => setModelPickerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface border border-border
+              text-text-dim hover:text-text hover:border-primary/20 transition-all text-xs font-medium btn-press">
+            {currentModel.name}
+            <ChevronDown size={12} />
+          </button>
+        </div>
+
+        {/* Model Picker — modal */}
         {modelPickerOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in" onClick={() => setModelPickerOpen(false)} />
-
-            {/* Popup */}
-            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden animate-modal-in scale-100 transform transition-transform origin-bottom">
-              {/* Header */}
+            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden animate-modal-in">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
                 <h3 className="text-base font-semibold text-text">Pilih model</h3>
-                <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">
-                  ✕
-                </button>
+                <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">✕</button>
               </div>
-
-              {/* Model List */}
               <div className="p-3 space-y-1.5">
                 {MODELS.map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => {
-                      onModelChange(model.id);
-                      setModelPickerOpen(false);
-                    }}
-                    className={`
-                      w-full flex items-center gap-3 px-4 py-3.5 rounded-xl
-                      transition-all duration-200 text-left btn-press
-                      ${selectedModel === model.id ? "bg-primary-subtle border border-primary/20" : "hover:bg-bg-alt border border-transparent"}
-                    `}
-                  >
-                    {/* Radio indicator */}
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200
-                      ${selectedModel === model.id ? "border-primary bg-primary" : "border-border-light"}`}
-                    >
+                  <button key={model.id} onClick={() => { onModelChange(model.id); setModelPickerOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all text-left btn-press
+                      ${selectedModel === model.id ? 'bg-primary-subtle border border-primary/20' : 'hover:bg-bg-alt border border-transparent'}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                      ${selectedModel === model.id ? 'border-primary bg-primary' : 'border-border-light'}`}>
                       {selectedModel === model.id && <Check size={12} className="text-white" strokeWidth={3} />}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`font-semibold text-sm ${selectedModel === model.id ? "text-primary" : "text-text"}`}>{model.name}</span>
-                        {model.badge === "recommended" && (
+                        <span className={`font-semibold text-sm ${selectedModel === model.id ? 'text-primary' : 'text-text'}`}>{model.name}</span>
+                        {model.badge === 'recommended' && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 font-semibold">
-                            <Star size={10} className="fill-amber-400" />
-                            Rekomendasi
+                            <Star size={10} className="fill-amber-400" />Rekomendasi
                           </span>
                         )}
                         {model.multimodal && <span className="px-1.5 py-0.5 rounded text-[10px] bg-accent-subtle text-accent font-medium">Multimodal</span>}
