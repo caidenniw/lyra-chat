@@ -140,8 +140,8 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
   };
 
   return (
-    <div className="relative bg-transparent">
-      <div className="max-w-3xl mx-auto px-3 md:px-4 pt-2 pb-4 md:pb-6">
+    <div className="relative bg-transparent pb-4 md:pb-6">
+      <div className="max-w-3xl mx-auto px-4 md:px-8 pt-2 pb-2">
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-xl bg-primary-subtle border border-primary/10 animate-message-in">
@@ -188,7 +188,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`relative flex items-end gap-1.5 md:gap-1.5 bg-surface border rounded-2xl px-2.5 py-1.5 md:px-3 md:py-2 shadow-medium
+          className={`relative flex items-end gap-2 md:gap-3 bg-surface border rounded-3xl px-3 py-2.5 md:px-4 md:py-3 shadow-medium mx-1 md:mx-4
             input-focus-ring transition-all duration-200 ${dragOver ? 'border-primary ring-2 ring-primary/20' :
             isStreaming ? 'border-primary/30' : 'border-border focus-within:border-primary/30'}`}
         >
@@ -230,11 +230,11 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isStreaming ? 'Lyra sedang menjawab...' : files.length > 0 ? 'Tambah pesan (opsional)...' : 'Ketik pesan atau lampirkan file...'}
+            placeholder={isStreaming ? 'Lyra sedang menjawab...' : 'Ketik pesan atau lampirkan file...'}
             rows={1}
             disabled={isStreaming}
-            className="flex-1 bg-transparent text-text text-sm placeholder:text-text-dim
-              resize-none outline-none max-h-[200px] leading-relaxed disabled:opacity-50"
+            className="flex-1 bg-transparent text-text text-[15px] placeholder:text-text-dim
+              resize-none outline-none max-h-[200px] leading-relaxed disabled:opacity-50 py-1"
           />
 
           {/* Send / Stop */}
