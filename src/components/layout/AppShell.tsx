@@ -54,7 +54,7 @@ export function AppShell() {
     },
   ]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>('1');
-  const [selectedModel, setSelectedModel] = useState('deepseek-v4-flash-free');
+  const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
 
   const { sendMessage, isStreaming, streamingMessageId, messages } = useChat({ model: selectedModel, onModelChange: setSelectedModel });
 
