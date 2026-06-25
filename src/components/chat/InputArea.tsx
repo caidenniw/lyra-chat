@@ -275,7 +275,7 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
             />
 
             {/* Popup */}
-            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-medium border border-border overflow-hidden animate-modal-in">
+            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden animate-modal-in scale-100 transform transition-transform origin-bottom">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
                 <h3 className="text-base font-semibold text-text">Pilih model</h3>

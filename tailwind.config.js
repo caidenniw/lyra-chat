@@ -56,6 +56,30 @@ export default {
         'medium': '0 4px 6px -1px rgba(44,42,37,0.05), 0 2px 4px -2px rgba(44,42,37,0.05)',
         'card': '0 2px 8px rgba(96,116,86,0.1)',
       },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slide-in-left': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        'scale-up': {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'message-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        }
+      },
+      animation: {
+        'fade-in': 'fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-in-left': 'slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'modal-in': 'scale-up 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        'message-in': 'message-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      },
     },
   },
   plugins: [],

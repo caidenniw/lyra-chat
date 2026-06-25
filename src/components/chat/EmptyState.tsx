@@ -63,7 +63,7 @@ export function EmptyState({ onSend }: EmptyStateProps) {
               onClick={() => onSend(item.prompt)}
               className="card-hover flex items-center gap-3 p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-surface border border-border
                 hover:border-primary/20 text-left group animate-message-in"
-              style={{ animationDelay: `${0.2 + i * 0.05}s` }}
+              style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: 'both' }}
             >
               <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl ${item.color} flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}>
                 <item.icon size={16} className="md:w-[18px] md:h-[18px]" />

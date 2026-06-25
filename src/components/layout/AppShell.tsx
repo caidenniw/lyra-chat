@@ -123,8 +123,8 @@ export function AppShell() {
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
       <div className={`
         max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
-        max-md:transition-transform max-md:duration-250 max-md:ease-out
-        ${sidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}
+        max-md:transition-transform max-md:duration-300 max-md:ease-[cubic-bezier(0.16,1,0.3,1)]
+        ${sidebarOpen ? 'max-md:translate-x-0 shadow-2xl' : 'max-md:-translate-x-full'}
         md:relative md:translate-x-0
         ${sidebarOpen ? '' : 'hidden md:hidden'}
       `}>
@@ -146,7 +146,7 @@ export function AppShell() {
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="sidebar-backdrop md:hidden"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -156,7 +156,7 @@ export function AppShell() {
         <button
           onClick={() => setSidebarOpen(true)}
           className="fixed top-3 left-3 z-30 p-2 rounded-xl bg-surface border border-border
-            shadow-soft hover:bg-bg-alt text-text-muted hover:text-text btn-press"
+            shadow-soft hover:bg-bg-alt text-text-muted hover:text-text btn-press animate-fade-in"
         >
           <Menu size={18} />
         </button>
