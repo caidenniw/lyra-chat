@@ -156,7 +156,7 @@ function renderTable(headers: string[], rows: string[][], key: string) {
 }
 
 // ── Main renderer ──
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export const MarkdownRenderer = React.memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const blocks = parseBlocks(content);
 
   return (
@@ -239,4 +239,4 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       })}
     </div>
   );
-}
+});

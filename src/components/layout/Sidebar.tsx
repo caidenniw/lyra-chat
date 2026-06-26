@@ -161,10 +161,10 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
             </button>
           </div>
         ) : (
-          /* Normal chat item */
-          <button
+          /* Normal chat item - div instead of button to avoid nested buttons */
+          <div
             onClick={() => onSelect(conv.id)}
-            className={`w-full flex items-center gap-1 pr-1 text-left rounded-lg text-xs transition-colors btn-press ${
+            className={`w-full flex items-center gap-1 pr-1 text-left rounded-lg text-xs transition-colors cursor-pointer ${
               activeId === conv.id ? "bg-primary/10 text-primary font-medium py-1.5 px-3" : "text-text-muted hover:text-text hover:bg-bg-alt py-1.5 px-3"
             }`}
           >
@@ -179,7 +179,7 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
             >
               <MoreVertical size={12} />
             </button>
-          </button>
+          </div>
         )}
 
         {/* Dropdown menu */}
@@ -300,7 +300,8 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
         <nav className="px-3 mb-2 overflow-y-auto flex-1">
           {/* Pustaka */}
           <div>
-            <button
+            {/* FIX: Changed outer button to div to avoid nested button nesting */}
+            <div
               onClick={() => {
                 const allExpanded = projects.every((p) => expandedProjects[p.id]);
                 if (allExpanded) {
@@ -313,7 +314,7 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
                   setExpandedProjects(next);
                 }
               }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors cursor-pointer btn-press"
             >
               <div className="flex items-center gap-3">
                 <FolderOpen size={16} />
@@ -331,7 +332,7 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
                 </button>
                 {projects.length > 0 && (projects.every((p) => expandedProjects[p.id]) ? <ChevronDown size={14} className="text-text-dim" /> : <ChevronRight size={14} className="text-text-dim" />)}
               </div>
-            </button>
+            </div>
 
             {/* New Project Input */}
             {showNewProject && (
@@ -380,10 +381,11 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
 
           {/* Riwayat */}
           <div className="mt-1">
-            <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors btn-press">
+            {/* FIX: Changed button to div — it's just a label, not interactive */}
+            <div className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-text-muted hover:text-text hover:bg-bg-alt transition-colors cursor-pointer btn-press">
               <Clock size={16} />
               <span className="font-medium">Riwayat</span>
-            </button>
+            </div>
 
             <div className="px-1">
               {ungrouped.length === 0 && !search && <div className="text-[10px] text-text-dim py-2 italic">Belum ada percakapan</div>}

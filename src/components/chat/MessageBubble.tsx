@@ -1,5 +1,5 @@
 import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info } from 'lucide-react';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { Message } from '../layout/AppShell';
 
@@ -8,7 +8,7 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
 }
 
-export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
@@ -69,17 +69,17 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
         )}
 
         {/* Bubble */}
-        <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-300 max-w-full min-w-0 overflow-x-auto ${
+        <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-300 ease-out max-w-full min-w-0 overflow-hidden ${
           isUser
             ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
             : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
         }`}>
           {isEmpty ? (
             /* Typing animation dots */
-            <div className="flex items-center gap-1.5 py-1">
-              <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-center gap-1.5 py-2 px-1">
+              <span className="w-2 h-2 rounded-full bg-primary/50 typing-dot" />
+              <span className="w-2 h-2 rounded-full bg-primary/50 typing-dot" />
+              <span className="w-2 h-2 rounded-full bg-primary/50 typing-dot" />
             </div>
           ) : isUser ? (
             /* User — plain text */
@@ -88,11 +88,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             </div>
           ) : (
             /* AI — markdown with code blocks */
-            <div className="text-sm leading-relaxed">
+            <div className={`text-sm leading-relaxed ${isStreaming ? 'animate-content-fade' : ''}`}>
               <MarkdownRenderer content={message.content} />
               {/* Blinking cursor during streaming */}
               {isStreaming && (
-                <span className="inline-block w-0.5 h-4 bg-primary/60 ml-0.5 animate-pulse align-text-bottom" />
+                <span className="ai-cursor" />
               )}
             </div>
           )}
@@ -148,4 +148,4 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       )}
     </div>
   );
-}
+});

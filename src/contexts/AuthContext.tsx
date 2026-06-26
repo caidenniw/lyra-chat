@@ -6,8 +6,8 @@ import { supabase } from '../lib/supabase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  sendOtp: (email: string) => Promise<{ error: AuthError | null }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -40,15 +40,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
+  /**
+   * Mengirim kode OTP ke email user.
+   * Supabase akan mengirimkan email berisi kode 6-digit.
+   */
+  const sendOtp = async (email: string) => {
     if (!supabase) return { error: { message: 'Supabase belum dikonfigurasi.' } as AuthError };
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    
     return { error };
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  /**
+   * Memverifikasi kode OTP yang dimasukkan user.
+   * Jika valid, user akan otomatis mendapatkan session login.
+   */
+  const verifyOtp = async (email: string, token: string) => {
     if (!supabase) return { error: { message: 'Supabase belum dikonfigurasi.' } as AuthError };
-    const { error } = await supabase.auth.signUp({ email, password });
+    
+    const { error } = await supabase.auth.verifyOtp({ 
+      email, 
+      token, 
+      type: 'email' // Menggunakan tipe verifikasi email/OTP
+    });
+    
     return { error };
   };
 
@@ -64,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, sendOtp, verifyOtp, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

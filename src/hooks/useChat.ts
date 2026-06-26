@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react';
 import { streamChat, type ChatMessage } from '../lib/ai/client';
 import { isMultimodalModel, getMultimodalModel, getModelById } from '../lib/ai/models';
 import type { Message, AttachedFile } from '../components/layout/AppShell';
+import { saveMessages } from '../services/chat';
 
 interface UseChatOptions {
   model: string;
+  userId?: string;
   onModelChange?: (model: string) => void;
 }
 
@@ -16,7 +18,7 @@ interface UseChatReturn {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
-export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn {
+export function useChat({ model, userId, onModelChange }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       role: 'user',
       content,
       files,
+      model: activeModel,
       timestamp: new Date(),
       conversationId,
     };
@@ -49,6 +52,7 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       id: crypto.randomUUID(),
       role: 'assistant',
       content: '',
+      model: activeModel,
       timestamp: new Date(),
       conversationId,
     };
@@ -58,6 +62,7 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       id: crypto.randomUUID(),
       role: 'system',
       content: `✨ Model beralih ke ${getModelById(activeModel)?.name || activeModel} untuk mendukung gambar.`,
+      model: activeModel,
       timestamp: new Date(),
       conversationId,
     } : null;
@@ -95,10 +100,10 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
       }
     }
 
-    // Conversation history
+    // Conversation history (last 10 messages to avoid token overload)
     const historyMessages = messages
       .filter(m => m.conversationId === conversationId)
-      .slice(-20)
+      .slice(-10)
       .map(m => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
@@ -144,19 +149,56 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
     apiMessages.push(finalUserMessage);
 
     try {
-      await streamChat(apiMessages, activeModel, {
-        onToken: (token) => {
+      let finalAssistantContent = '';
+      let tokenBuffer = '';
+      let pendingFlush: number | null = null;
+
+      const flushTokens = () => {
+        if (tokenBuffer) {
+          const batch = tokenBuffer;
+          tokenBuffer = '';
+          finalAssistantContent += batch;
           setMessages(prev =>
             prev.map(m =>
               m.id === assistantMsg.id
-                ? { ...m, content: m.content + token }
+                ? { ...m, content: m.content + batch }
                 : m
             )
           );
+        }
+        pendingFlush = null;
+      };
+
+      await streamChat(apiMessages, activeModel, {
+        onToken: (token) => {
+          tokenBuffer += token;
+          if (!pendingFlush) {
+            pendingFlush = requestAnimationFrame(flushTokens);
+          }
         },
         onDone: () => {
+          // Flush any remaining tokens immediately
+          flushTokens();
+          if (pendingFlush) {
+            cancelAnimationFrame(pendingFlush);
+            pendingFlush = null;
+          }
+
           setIsStreaming(false);
           setStreamingMessageId(null);
+          
+          // Save messages to Supabase after streaming completes
+          if (userId && conversationId) {
+            const finalAssistantMsg: Omit<Message, 'conversationId'> = {
+              ...assistantMsg,
+              content: finalAssistantContent,
+            };
+            const messagesToSave: Omit<Message, 'conversationId'>[] = [userMsg, finalAssistantMsg];
+            if (systemMsg) messagesToSave.push(systemMsg);
+            saveMessages(conversationId, messagesToSave).catch(err => {
+              console.error('Failed to save messages:', err);
+            });
+          }
         },
         onError: (error) => {
           console.error("Chat Error:", error);
@@ -182,6 +224,19 @@ export function useChat({ model, onModelChange }: UseChatOptions): UseChatReturn
           );
           setIsStreaming(false);
           setStreamingMessageId(null);
+
+          // Save error message to Supabase
+          if (userId && conversationId) {
+            const errorAssistantMsg: Omit<Message, 'conversationId'> = {
+              ...assistantMsg,
+              content: friendlyError,
+            };
+            const messagesToSave: Omit<Message, 'conversationId'>[] = [userMsg, errorAssistantMsg];
+            if (systemMsg) messagesToSave.push(systemMsg);
+            saveMessages(conversationId, messagesToSave).catch(err => {
+              console.error('Failed to save error messages:', err);
+            });
+          }
         },
       });
     } catch (error) {

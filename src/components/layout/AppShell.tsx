@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +8,15 @@ import { ChatArea } from '../chat/ChatArea';
 import { InputArea } from '../chat/InputArea';
 import { EmptyState } from '../chat/EmptyState';
 import { useChat } from '../../hooks/useChat';
+import {
+  getConversations,
+  getMessages,
+  getProjects,
+  createConversation as createConversationDb,
+  updateConversation as updateConversationDb,
+  deleteConversation as deleteConversationDb,
+  createProject as createProjectDb,
+} from '../../services/chat';
 
 export interface AttachedFile {
   name: string;
@@ -29,6 +38,7 @@ export interface Message {
 
 export interface Conversation {
   id: string;
+  userId?: string;
   title: string;
   messages: Message[];
   model: string;
@@ -42,28 +52,96 @@ export function AppShell() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      title: 'Chat baru',
-      messages: [],
-      model: 'deepseek-v4-flash-free',
-      projectId: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>('1');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { sendMessage, isStreaming, streamingMessageId, messages } = useChat({ model: selectedModel, onModelChange: setSelectedModel });
+  const { sendMessage, isStreaming, streamingMessageId, messages, setMessages } = useChat({
+    model: selectedModel,
+    userId: user?.id,
+    onModelChange: setSelectedModel,
+  });
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
-  const activeMessages = messages.filter(m => m.conversationId === activeConversationId);
+  const activeMessages = useMemo(
+    () => messages.filter(m => m.conversationId === activeConversationId),
+    [messages, activeConversationId]
+  );
 
-  const handleNewChat = () => {
+  // Load conversations, messages, and projects from Supabase when user changes
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        // Guest mode: reset to empty
+        setConversations([]);
+        setMessages([]);
+        setProjects([]);
+        setActiveConversationId(null);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const [dbConversations, dbMessages, dbProjects] = await Promise.all([
+          getConversations(user.id),
+          getMessages(user.id),
+          getProjects(user.id),
+        ]);
+
+        setConversations(dbConversations);
+        setMessages(dbMessages);
+        setProjects(dbProjects as Project[]);
+
+        // Set active conversation to the most recent one if exists
+        if (dbConversations.length > 0) {
+          setActiveConversationId(dbConversations[0].id);
+        } else {
+          // No existing conversations: create a new one automatically
+          const defaultConv: Conversation = {
+            id: crypto.randomUUID(),
+            title: 'Chat baru',
+            messages: [],
+            model: selectedModel,
+            projectId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          if (user) {
+            const saved = await createConversationDb(user.id, defaultConv);
+            if (saved) {
+              setConversations([saved]);
+              setActiveConversationId(saved.id);
+            } else {
+              setConversations([defaultConv]);
+              setActiveConversationId(defaultConv.id);
+            }
+          } else {
+            setConversations([defaultConv]);
+            setActiveConversationId(defaultConv.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading chat data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user, setMessages]);
+
+  // Update selected model when active conversation changes
+  useEffect(() => {
+    if (activeConversation?.model) {
+      setSelectedModel(activeConversation.model);
+    }
+  }, [activeConversationId]);
+
+  const handleNewChat = async (): Promise<Conversation> => {
     const newConv: Conversation = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: 'Chat baru',
       messages: [],
       model: selectedModel,
@@ -71,22 +149,48 @@ export function AppShell() {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    // If user is logged in, save to Supabase
+    if (user) {
+      const saved = await createConversationDb(user.id, newConv);
+      if (saved) {
+        setConversations(prev => [saved, ...prev]);
+        setActiveConversationId(saved.id);
+        return saved;
+      }
+    }
+
+    // Guest mode or save failed: use local state
     setConversations(prev => [newConv, ...prev]);
     setActiveConversationId(newConv.id);
+    return newConv;
   };
 
-  const handleSendMessage = (content: string, files?: AttachedFile[]) => {
-    if (!activeConversation || !activeConversationId) return;
+  const handleSendMessage = async (content: string, files?: AttachedFile[]) => {
+    let currentConversationId = activeConversationId;
+    let currentConversation = activeConversation;
 
-    const hasExistingMessages = messages.some(m => m.conversationId === activeConversationId && m.role === 'user');
+    // Create a new conversation if none is active
+    if (!currentConversationId || !currentConversation) {
+      const newConv = await handleNewChat();
+      currentConversationId = newConv.id;
+      currentConversation = newConv;
+    }
+
+    const hasExistingMessages = messages.some(m => m.conversationId === currentConversationId && m.role === 'user');
     if (!hasExistingMessages) {
       const title = content.length > 40 ? content.substring(0, 40) + '...' : content;
       setConversations(prev =>
-        prev.map(c => (c.id === activeConversationId ? { ...c, title } : c))
+        prev.map(c => (c.id === currentConversationId ? { ...c, title } : c))
       );
+
+      // Update title in Supabase if logged in
+      if (user) {
+        updateConversationDb(currentConversationId, { title }).catch(console.error);
+      }
     }
 
-    sendMessage(content, files, activeConversationId);
+    sendMessage(content, files, currentConversationId);
   };
 
   const handleSelectConversation = (id: string) => {
@@ -97,17 +201,46 @@ export function AppShell() {
     }
   };
 
-  const handleDeleteConversation = (id: string) => {
-    setConversations(prev => prev.filter(c => c.id !== id));
+  const handleDeleteConversation = async (id: string) => {
+    if (user) {
+      await deleteConversationDb(id);
+    }
+
+    const remaining = conversations.filter(c => c.id !== id);
+    setConversations(remaining);
+
     if (activeConversationId === id) {
-      setActiveConversationId(conversations.find(c => c.id !== id)?.id || null);
+      if (remaining.length > 0) {
+        setActiveConversationId(remaining[0].id);
+      } else {
+        // No conversations left: create a new one
+        await handleNewChat();
+      }
     }
   };
-  const handleRenameConversation = (id: string, newTitle: string) => {
+
+  const handleRenameConversation = async (id: string, newTitle: string) => {
     setConversations(prev => prev.map(c => c.id === id ? { ...c, title: newTitle } : c));
+
+    if (user) {
+      await updateConversationDb(id, { title: newTitle });
+    }
   };
 
-  const handleCreateProject = (name: string) => {
+  const handleCreateProject = async (name: string) => {
+    if (user) {
+      const saved = await createProjectDb(user.id, name);
+      if (saved) {
+        const newProject: Project = {
+          id: saved.id,
+          name: saved.name,
+          createdAt: new Date(saved.created_at),
+        };
+        setProjects(prev => [...prev, newProject]);
+        return;
+      }
+    }
+
     const newProject: Project = {
       id: crypto.randomUUID(),
       name,
@@ -116,12 +249,14 @@ export function AppShell() {
     setProjects(prev => [...prev, newProject]);
   };
 
-
-
-  const handleMoveToProject = (conversationId: string, projectId: string | null) => {
+  const handleMoveToProject = async (conversationId: string, projectId: string | null) => {
     setConversations(prev =>
       prev.map(c => c.id === conversationId ? { ...c, projectId } : c)
     );
+
+    if (user) {
+      await updateConversationDb(conversationId, { projectId });
+    }
   };
 
   const hasMessages = activeMessages.length > 0;
@@ -213,7 +348,14 @@ export function AppShell() {
       </AnimatePresence>
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-        {hasMessages ? (
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center text-text-muted">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <span className="text-sm">Memuat percakapan...</span>
+            </div>
+          </div>
+        ) : hasMessages ? (
           <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} />
         ) : (
           <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
