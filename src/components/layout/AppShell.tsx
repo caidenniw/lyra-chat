@@ -130,7 +130,7 @@ export function AppShell() {
     };
 
     loadData();
-  }, [user, setMessages]);
+  }, [user?.id]); // Only reload when user ID changes (not object reference)
 
   // Update selected model when active conversation changes
   useEffect(() => {

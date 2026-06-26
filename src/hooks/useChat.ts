@@ -1,5 +1,4 @@
-import { useState, useCallback } from 'react';
-import { streamChat, type ChatMessage } from '../lib/ai/client';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { isMultimodalModel, getMultimodalModel, getModelById } from '../lib/ai/models';
 import type { Message, AttachedFile } from '../components/layout/AppShell';
 import { saveMessages } from '../services/chat';
@@ -11,24 +10,176 @@ interface UseChatOptions {
 }
 
 interface UseChatReturn {
-  sendMessage: (content: string, files?: AttachedFile[], conversationId?: string) => Promise<void>;
+  sendMessage: (content: string, files?: AttachedFile[], conversationId?: string) => void;
   isStreaming: boolean;
   streamingMessageId: string | null;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
+// Web Worker for streaming — imported as URL for React compatibility
+const workerUrl = new URL('../lib/ai/streamWorker.ts', import.meta.url);
+
 export function useChat({ model, userId, onModelChange }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  
+  const workerRef = useRef<Worker | null>(null);
+  const currentAssistantContentRef = useRef('');
+  const currentUserMsgRef = useRef<Message | null>(null);
+  const currentAssistantMsgRef = useRef<Message | null>(null);
+  const currentSystemMsgRef = useRef<Message | null>(null);
+  const currentConversationIdRef = useRef<string | undefined>(undefined);
+  const tokenBufferRef = useRef('');
+  const pendingFlushRef = useRef<number | null>(null);
 
-  const sendMessage = useCallback(async (content: string, files?: AttachedFile[], conversationId?: string) => {
+  // Create and setup worker
+  useEffect(() => {
+    const worker = new Worker(workerUrl, { type: 'module' });
+    workerRef.current = worker;
+
+    const flushTokens = () => {
+      if (!tokenBufferRef.current) return;
+      const batch = tokenBufferRef.current;
+      tokenBufferRef.current = '';
+      currentAssistantContentRef.current += batch;
+      
+      const assistantId = currentAssistantMsgRef.current?.id;
+      if (!assistantId) return;
+      
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: m.content + batch }
+            : m
+        )
+      );
+      pendingFlushRef.current = null;
+    };
+
+    const getFriendlyError = (error: string): string => {
+      if (error.includes('503') || error.includes('502') || error.includes('504') || error.includes('timeout')) {
+        return '⚠️ Model sedang sibuk atau respons terlalu lama (timeout). Silakan ganti ke model Luma untuk sementara waktu.';
+      } else if (error.includes('401') || error.includes('provider')) {
+        return '⚠️ Saat ini model sedang tidak tersedia. Sangat disarankan untuk mencoba model Luma.';
+      } else if (error.includes('429') || error.includes('rate')) {
+        return '⚠️ Terlalu banyak permintaan ke model ini. Silakan ganti model atau coba lagi sebentar.';
+      } else if (error.includes('network') || error.includes('fetch') || error.includes('Failed')) {
+        return '⚠️ Koneksi terputus. Pastikan internet Anda stabil.';
+      }
+      return '⚠️ Maaf, terjadi gangguan pada sistem AI. Silakan coba lagi nanti.';
+    };
+
+    const handleDone = () => {
+      // Flush any remaining tokens
+      flushTokens();
+      if (pendingFlushRef.current) {
+        cancelAnimationFrame(pendingFlushRef.current);
+        pendingFlushRef.current = null;
+      }
+
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+
+      // Save to Supabase
+      const assistantMsg = currentAssistantMsgRef.current;
+      const userMsg = currentUserMsgRef.current;
+      const systemMsg = currentSystemMsgRef.current;
+      const conversationId = currentConversationIdRef.current;
+      const finalContent = currentAssistantContentRef.current;
+
+      if (userId && conversationId && assistantMsg && userMsg) {
+        const finalAssistantMsg: Omit<Message, 'conversationId'> = {
+          ...assistantMsg,
+          content: finalContent,
+        };
+        const msgsToSave: Omit<Message, 'conversationId'>[] = [userMsg, finalAssistantMsg];
+        if (systemMsg) msgsToSave.push(systemMsg);
+        saveMessages(conversationId, msgsToSave).catch(err => {
+          console.error('Failed to save messages:', err);
+        });
+      }
+    };
+
+    const handleError = (error: string) => {
+      console.error('Chat Error:', error);
+      const friendlyError = getFriendlyError(error);
+      const assistantId = currentAssistantMsgRef.current?.id;
+      const assistantMsg = currentAssistantMsgRef.current;
+      const userMsg = currentUserMsgRef.current;
+      const systemMsg = currentSystemMsgRef.current;
+      const conversationId = currentConversationIdRef.current;
+
+      if (assistantId) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId
+              ? { ...m, content: friendlyError }
+              : m
+          )
+        );
+      }
+
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+
+      if (userId && conversationId && assistantMsg && userMsg) {
+        const errorAssistantMsg: Omit<Message, 'conversationId'> = {
+          ...assistantMsg,
+          content: friendlyError,
+        };
+        const msgsToSave: Omit<Message, 'conversationId'>[] = [userMsg, errorAssistantMsg];
+        if (systemMsg) msgsToSave.push(systemMsg);
+        saveMessages(conversationId, msgsToSave).catch(err => {
+          console.error('Failed to save error messages:', err);
+        });
+      }
+    };
+
+    worker.onmessage = (e: MessageEvent) => {
+      const msg = e.data;
+
+      if (msg.type === 'token') {
+        // Batch tokens for smooth rendering
+        tokenBufferRef.current += msg.data;
+        if (!pendingFlushRef.current) {
+          pendingFlushRef.current = requestAnimationFrame(flushTokens);
+        }
+      } else if (msg.type === 'done') {
+        handleDone();
+      } else if (msg.type === 'error') {
+        handleError(msg.data);
+      }
+    };
+
+    worker.onerror = (e) => {
+      handleError(e.message);
+    };
+
+    // Flush tokens when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && tokenBufferRef.current) {
+        flushTokens();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, [userId]);
+
+  const sendMessage = useCallback((content: string, files?: AttachedFile[], conversationId?: string) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+
     const hasImages = files && files.length > 0 && files.some(f => f.type.startsWith('image/'));
     let activeModel = model;
     let switchedFrom: string | null = null;
 
-    // Auto-switch to multimodal if images but current model can't handle them
     if (hasImages && !isMultimodalModel(model)) {
       switchedFrom = model;
       const target = getMultimodalModel();
@@ -36,7 +187,6 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       onModelChange?.(activeModel);
     }
 
-    // User message
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -47,7 +197,6 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       conversationId,
     };
 
-    // Assistant placeholder
     const assistantMsg: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
@@ -57,7 +206,6 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       conversationId,
     };
 
-    // System warning message (if model was switched)
     const systemMsg: Message | null = switchedFrom ? {
       id: crypto.randomUUID(),
       role: 'system',
@@ -67,7 +215,19 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       conversationId,
     } : null;
 
-    // Add messages: user → system warning (if any) → assistant placeholder
+    // Store refs for callbacks
+    currentAssistantContentRef.current = '';
+    currentUserMsgRef.current = userMsg;
+    currentAssistantMsgRef.current = assistantMsg;
+    currentSystemMsgRef.current = systemMsg;
+    currentConversationIdRef.current = conversationId;
+    tokenBufferRef.current = '';
+    if (pendingFlushRef.current) {
+      cancelAnimationFrame(pendingFlushRef.current);
+      pendingFlushRef.current = null;
+    }
+
+    // Add messages to state
     setMessages(prev => {
       const updated = [...prev, userMsg];
       if (systemMsg) updated.push(systemMsg);
@@ -79,14 +239,13 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     setStreamingMessageId(assistantMsg.id);
 
     // Build API messages
-    const apiMessages: ChatMessage[] = [
+    const apiMessages: Array<{ role: string; content: string }> = [
       {
         role: 'system',
         content: 'Kamu adalah Lyra, AI assistant yang cerdas dan membantu. Jawab dalam Bahasa Indonesia kecuali diminta bahasa lain. Gunakan format markdown jika diperlukan.\nATURAN KODE: Jika membuat kode yang sangat panjang (seperti file HTML + CSS + JS sekaligus), PECAH menjadi beberapa bagian. Berikan satu bagian dulu, lalu tanyakan apakah user ingin melanjutkan ke bagian berikutnya. JANGAN memberikan kode raksasa dalam satu balasan.',
       },
     ];
 
-    // Add file content as text context (non-image files)
     if (files && files.length > 0) {
       const textFiles = files.filter(f => f.content);
       if (textFiles.length > 0) {
@@ -100,17 +259,15 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       }
     }
 
-    // Conversation history (last 10 messages to avoid token overload)
     const historyMessages = messages
       .filter(m => m.conversationId === conversationId)
       .slice(-10)
       .map(m => ({
-        role: m.role as 'user' | 'assistant',
+        role: m.role,
         content: m.content,
       }));
     apiMessages.push(...historyMessages);
 
-    // Build user message with file context
     let userContent = content;
     if (files && files.length > 0) {
       const imageCount = files.filter(f => f.type.startsWith('image/')).length;
@@ -121,13 +278,11 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       userContent = `${content}\n\n[Lampiran: ${parts.join(', ')}]`;
     }
 
-    // Collect image data
     const imageDatas = files
       ?.filter(f => f.type.startsWith('image/'))
       .map(f => f.preview);
 
-    // Build final user message (multimodal or text)
-    let finalUserMessage: ChatMessage;
+    let finalUserMessage: { role: string; content: string };
     if (imageDatas && imageDatas.length > 0 && isMultimodalModel(activeModel)) {
       const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
         { type: 'text', text: userContent },
@@ -138,118 +293,23 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       finalUserMessage = { role: 'user', content: JSON.stringify(contentParts) };
     } else {
       const isContinuing = userContent.trim().toLowerCase().match(/^(lanjut|lanjutkan|sambung|continue)(\s.*)?$/);
-      finalUserMessage = { 
-        role: 'user', 
-        content: isContinuing 
+      finalUserMessage = {
+        role: 'user',
+        content: isContinuing
           ? `${userContent}\n\n[INSTRUKSI SISTEM: Lanjutkan respons kamu sebelumnya TEPAT dari karakter atau baris terakhir yang terpotong. JANGAN mengulang kode atau penjelasan dari awal. Langsung sambung saja.]`
-          : userContent 
+          : userContent
       };
     }
 
     apiMessages.push(finalUserMessage);
 
-    try {
-      let finalAssistantContent = '';
-      let tokenBuffer = '';
-      let pendingFlush: number | null = null;
-
-      const flushTokens = () => {
-        if (tokenBuffer) {
-          const batch = tokenBuffer;
-          tokenBuffer = '';
-          finalAssistantContent += batch;
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMsg.id
-                ? { ...m, content: m.content + batch }
-                : m
-            )
-          );
-        }
-        pendingFlush = null;
-      };
-
-      await streamChat(apiMessages, activeModel, {
-        onToken: (token) => {
-          tokenBuffer += token;
-          if (!pendingFlush) {
-            pendingFlush = requestAnimationFrame(flushTokens);
-          }
-        },
-        onDone: () => {
-          // Flush any remaining tokens immediately
-          flushTokens();
-          if (pendingFlush) {
-            cancelAnimationFrame(pendingFlush);
-            pendingFlush = null;
-          }
-
-          setIsStreaming(false);
-          setStreamingMessageId(null);
-          
-          // Save messages to Supabase after streaming completes
-          if (userId && conversationId) {
-            const finalAssistantMsg: Omit<Message, 'conversationId'> = {
-              ...assistantMsg,
-              content: finalAssistantContent,
-            };
-            const messagesToSave: Omit<Message, 'conversationId'>[] = [userMsg, finalAssistantMsg];
-            if (systemMsg) messagesToSave.push(systemMsg);
-            saveMessages(conversationId, messagesToSave).catch(err => {
-              console.error('Failed to save messages:', err);
-            });
-          }
-        },
-        onError: (error) => {
-          console.error("Chat Error:", error);
-          // Graceful error messages
-          let friendlyError = '⚠️ Maaf, terjadi gangguan pada sistem AI. Silakan coba lagi nanti.';
-          
-          if (error.includes('503') || error.includes('502') || error.includes('504') || error.includes('timeout')) {
-            friendlyError = '⚠️ Model sedang sibuk atau respons terlalu lama (timeout). Silakan ganti ke model Luma untuk sementara waktu.';
-          } else if (error.includes('401') || error.includes('provider')) {
-            friendlyError = '⚠️ Saat ini model sedang tidak tersedia. Sangat disarankan untuk mencoba model Luma.';
-          } else if (error.includes('429') || error.includes('rate')) {
-            friendlyError = '⚠️ Terlalu banyak permintaan ke model ini. Silakan ganti model atau coba lagi sebentar.';
-          } else if (error.includes('network') || error.includes('fetch') || error.includes('Failed')) {
-            friendlyError = '⚠️ Koneksi terputus. Pastikan internet Anda stabil.';
-          } 
-
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMsg.id
-                ? { ...m, content: friendlyError }
-                : m
-            )
-          );
-          setIsStreaming(false);
-          setStreamingMessageId(null);
-
-          // Save error message to Supabase
-          if (userId && conversationId) {
-            const errorAssistantMsg: Omit<Message, 'conversationId'> = {
-              ...assistantMsg,
-              content: friendlyError,
-            };
-            const messagesToSave: Omit<Message, 'conversationId'>[] = [userMsg, errorAssistantMsg];
-            if (systemMsg) messagesToSave.push(systemMsg);
-            saveMessages(conversationId, messagesToSave).catch(err => {
-              console.error('Failed to save error messages:', err);
-            });
-          }
-        },
-      });
-    } catch (error) {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === assistantMsg.id
-            ? { ...m, content: '⚠️ Gagal mengirim pesan. Periksa koneksi internet.' }
-            : m
-        )
-      );
-      setIsStreaming(false);
-      setStreamingMessageId(null);
-    }
+    // Send to worker for streaming (runs in background thread)
+    worker.postMessage({
+      type: 'stream',
+      messages: apiMessages,
+      model: activeModel,
+      apiBase: '/api',
+    });
   }, [model, messages, onModelChange]);
 
   return { sendMessage, isStreaming, streamingMessageId, messages, setMessages };
