@@ -55,7 +55,7 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
               return user ? `${time}, ${user.email?.split('@')[0]}` : time;
             })()}
           </h1>
-          <p className="text-text-muted text-[11px] md:text-base animate-message-in" style={{ animationDelay: '0.15s' }}>
+          <p className="text-text-muted text-[13px] md:text-base animate-message-in" style={{ animationDelay: '0.15s' }}>
             Ada yang bisa saya bantu hari ini?
           </p>
         </div>
@@ -90,8 +90,8 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
                 <item.icon size={16} />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] md:text-sm font-medium text-text leading-tight">{item.title}</div>
-                <div className="text-[10px] md:text-xs text-text-muted leading-tight mt-0.5 line-clamp-2">{item.description}</div>
+                <div className="text-[13px] md:text-sm font-medium text-text leading-tight">{item.title}</div>
+                <div className="text-[12px] md:text-sm text-text-muted leading-tight mt-0.5 line-clamp-2">{item.description}</div>
               </div>
             </motion.button>
           ))}

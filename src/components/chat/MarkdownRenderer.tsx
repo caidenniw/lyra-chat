@@ -106,7 +106,7 @@ function renderInline(text: string): React.ReactNode[] {
     // Inline code
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={i} className="px-1.5 py-0.5 rounded bg-primary-subtle text-primary text-[13px] font-mono">
+        <code key={i} className="px-1.5 py-0.5 rounded bg-primary-subtle text-primary text-[14px] font-mono">
           {part.slice(1, -1)}
         </code>
       );
@@ -129,7 +129,7 @@ function renderInline(text: string): React.ReactNode[] {
 function renderTable(headers: string[], rows: string[][], key: string) {
   return (
     <div key={key} className="my-3 overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full text-[13px] border-collapse min-w-0">
+      <table className="w-full text-[14px] border-collapse min-w-0">
         <thead>
           <tr className="border-b border-border bg-bg-alt/50">
             {headers.map((h, i) => (

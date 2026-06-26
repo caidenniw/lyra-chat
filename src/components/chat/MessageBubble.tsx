@@ -46,7 +46,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       {/* Message Content */}
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[85%] min-w-0`}>
         {/* Label */}
-        <div className={`text-[10px] md:text-[11px] font-medium mb-0.5 md:mb-1 px-1 ${isUser ? 'text-text-muted' : 'text-primary'}`}>
+        <div className={`text-[11px] md:text-[12px] font-medium mb-0.5 md:mb-1 px-1 ${isUser ? 'text-text-muted' : 'text-primary'}`}>
           {isUser ? 'Kamu' : 'Lyra'}
         </div>
 
@@ -54,11 +54,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
         {isUser && message.files && message.files.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {message.files.map((file, idx) => (
-              <div key={idx} className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-xl bg-primary-subtle border border-primary/10 text-[10px] md:text-xs">
+              <div key={idx} className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-xl bg-primary-subtle border border-primary/10 text-[11px] md:text-xs">
                 {file.type.startsWith('image/') ? (
                   <img src={file.preview} alt={file.name} className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover" />
                 ) : (
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center text-[9px] md:text-[10px] font-mono text-primary font-bold uppercase">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] md:text-[11px] font-mono text-primary font-bold uppercase">
                     {file.name.split('.').pop()?.slice(0, 3) || '?'}
                   </div>
                 )}

@@ -118,12 +118,12 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
     <div className="my-3 rounded-xl overflow-hidden border border-[#1e2a3a] shadow-soft">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#0d1b2a] border-b border-[#1e2a3a]">
-        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">
+        <span className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
           {displayName}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium
             text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
         >
           {copied ? (
@@ -142,7 +142,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
 
       {/* Code */}
       <div className="bg-[#0a1628] overflow-x-auto">
-        <pre className="p-3 md:p-4 text-[12px] md:text-[13px] leading-relaxed w-fit min-w-full" style={{ tabSize: 2 }}>
+        <pre className="p-3 md:p-4 text-[13px] md:text-[14px] leading-relaxed w-fit min-w-full" style={{ tabSize: 2 }}>
           <code
             className="font-mono text-slate-300"
             dangerouslySetInnerHTML={{ __html: highlighted }}
