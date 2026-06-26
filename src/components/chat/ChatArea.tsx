@@ -21,24 +21,19 @@ export function ChatArea({ messages, streamingMessageId }: ChatAreaProps) {
     el.scrollTop = el.scrollHeight;
   }, []);
 
-  // Detect user scroll via wheel event (NOT triggered by programmatic scroll)
+  // Detect user scroll via wheel event (for auto-scroll logic)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Scroll up → disable auto-scroll
       if (e.deltaY < 0) {
         isAutoScrollRef.current = false;
-        setShowScrollButton(true);
-      }
-      // Scroll down → check if near bottom
-      else if (e.deltaY > 0) {
+      } else if (e.deltaY > 0) {
         const { scrollTop, scrollHeight, clientHeight } = el;
         const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
         if (distanceFromBottom < 100) {
           isAutoScrollRef.current = true;
-          setShowScrollButton(false);
         }
       }
     };
@@ -46,6 +41,24 @@ export function ChatArea({ messages, streamingMessageId }: ChatAreaProps) {
     el.addEventListener('wheel', handleWheel, { passive: true });
     return () => el.removeEventListener('wheel', handleWheel);
   }, []);
+
+  // Show/hide scroll button based on scroll position (always active)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const checkPosition = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setShowScrollButton(distanceFromBottom > 200);
+    };
+
+    el.addEventListener('scroll', checkPosition, { passive: true });
+    // Also check when content changes
+    checkPosition();
+    
+    return () => el.removeEventListener('scroll', checkPosition);
+  }, [messages]);
 
   // Auto-scroll during streaming
   useEffect(() => {
