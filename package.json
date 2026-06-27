@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
+    "@types/dompurify": "^3.0.5",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.11",
     "framer-motion": "^12.42.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^1.21.0",

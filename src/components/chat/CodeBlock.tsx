@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import hljs from 'highlight.js/lib/core';
+import DOMPurify from 'dompurify';
 
 // Register ONLY most common languages (reduced from 17 to 8)
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -86,6 +87,9 @@ export function CodeBlock({ code, language, streaming = false }: CodeBlockProps)
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Sanitize HTML to prevent XSS
+  const cleanHtml = DOMPurify.sanitize(highlighted);
+
   return (
     <div className="my-3 rounded-xl overflow-hidden border border-[#1e2a3a] shadow-soft">
       {/* Header */}
@@ -127,7 +131,7 @@ export function CodeBlock({ code, language, streaming = false }: CodeBlockProps)
         <pre className="p-3 md:p-4 text-[13px] md:text-[14px] leading-relaxed w-fit min-w-full" style={{ tabSize: 2 }}>
           <code
             className="font-mono text-slate-300"
-            dangerouslySetInnerHTML={{ __html: highlighted }}
+            dangerouslySetInnerHTML={{ __html: cleanHtml }}
           />
           {streaming && (
             <span className="inline-block w-2 h-4 bg-green-400/80 animate-pulse ml-0.5 align-middle" />
