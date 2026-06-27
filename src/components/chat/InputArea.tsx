@@ -164,6 +164,7 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -276,7 +277,13 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
             {files.map((file, idx) => (
               <div key={idx} className="relative group flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-xl bg-surface border border-border shadow-soft animate-message-in">
                 {isImageFile(file.type) ? (
-                  <img src={file.preview} alt={file.name} className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPreviewImage(file.preview)}
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary/50 transition-all"
+                  >
+                    <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                  </button>
                 ) : (
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <FileText size={16} className="text-primary md:hidden" />
@@ -407,6 +414,39 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
           )}
         </AnimatePresence>
       </div>
+
+      {/* Image preview modal */}
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setPreviewImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-[90vw] max-h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain"
+              />
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white text-text shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
