@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import hljs from 'highlight.js/lib/core';
 
-// Register common languages
+// Register ONLY most common languages (reduced from 17 to 8)
 import javascript from 'highlight.js/lib/languages/javascript';
 import python from 'highlight.js/lib/languages/python';
 import typescript from 'highlight.js/lib/languages/typescript';
@@ -11,15 +11,6 @@ import xml from 'highlight.js/lib/languages/xml';
 import json from 'highlight.js/lib/languages/json';
 import bash from 'highlight.js/lib/languages/bash';
 import sql from 'highlight.js/lib/languages/sql';
-import php from 'highlight.js/lib/languages/php';
-import java from 'highlight.js/lib/languages/java';
-import cpp from 'highlight.js/lib/languages/cpp';
-import csharp from 'highlight.js/lib/languages/csharp';
-import go from 'highlight.js/lib/languages/go';
-import rust from 'highlight.js/lib/languages/rust';
-import yaml from 'highlight.js/lib/languages/yaml';
-import markdown from 'highlight.js/lib/languages/markdown';
-import dockerfile from 'highlight.js/lib/languages/dockerfile';
 
 hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('js', javascript);
@@ -37,21 +28,6 @@ hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('sh', bash);
 hljs.registerLanguage('shell', bash);
 hljs.registerLanguage('sql', sql);
-hljs.registerLanguage('php', php);
-hljs.registerLanguage('java', java);
-hljs.registerLanguage('cpp', cpp);
-hljs.registerLanguage('c', cpp);
-hljs.registerLanguage('csharp', csharp);
-hljs.registerLanguage('cs', csharp);
-hljs.registerLanguage('go', go);
-hljs.registerLanguage('rust', rust);
-hljs.registerLanguage('rs', rust);
-hljs.registerLanguage('yaml', yaml);
-hljs.registerLanguage('yml', yaml);
-hljs.registerLanguage('markdown', markdown);
-hljs.registerLanguage('md', markdown);
-hljs.registerLanguage('dockerfile', dockerfile);
-hljs.registerLanguage('docker', dockerfile);
 
 // Language display names
 const LANG_NAMES: Record<string, string> = {
@@ -60,19 +36,14 @@ const LANG_NAMES: Record<string, string> = {
   python: 'Python', py: 'Python',
   css: 'CSS', html: 'HTML', xml: 'XML',
   json: 'JSON', bash: 'Bash', sh: 'Bash', shell: 'Bash',
-  sql: 'SQL', php: 'PHP', java: 'Java',
-  cpp: 'C++', c: 'C', csharp: 'C#', cs: 'C#',
-  go: 'Go', rust: 'Rust', rs: 'Rust',
-  yaml: 'YAML', yml: 'YAML',
-  markdown: 'Markdown', md: 'Markdown',
-  dockerfile: 'Docker', docker: 'Docker',
+  sql: 'SQL',
 };
 
 function detectLanguage(code: string): string {
   try {
     const result = hljs.highlightAuto(code, [
       'javascript', 'typescript', 'python', 'css', 'html',
-      'json', 'bash', 'sql', 'php', 'java', 'cpp', 'go', 'rust',
+      'json', 'bash', 'sql',
     ]);
     return result.language || 'plaintext';
   } catch {
