@@ -3,6 +3,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AttachedFile } from "../layout/AppShell";
 import { MODELS } from "../../lib/ai/models";
+import * as pdfjsLib from "pdfjs-dist";
+import mammoth from "mammoth";
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
@@ -40,8 +48,55 @@ function readFileAsText(file: File): Promise<string> {
   });
 }
 
+async function extractPdfText(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdf.numPages;
+  const textParts: string[] = [];
+
+  // Limit to first 20 pages to avoid huge payloads
+  const pagesToRead = Math.min(totalPages, 20);
+  for (let i = 1; i <= pagesToRead; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item: any) => item.str).join(" ");
+    if (pageText.trim()) {
+      textParts.push(`[Halaman ${i}]\n${pageText}`);
+    }
+  }
+
+  if (totalPages > 20) {
+    textParts.push(`\n[... ${totalPages - 20} halaman lagi tidak ditampilkan]`);
+  }
+
+  return textParts.join("\n\n");
+}
+
+async function extractDocxText(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 function isImageFile(type: string): boolean {
   return type.startsWith("image/");
+}
+
+function isPdfFile(name: string): boolean {
+  return name.toLowerCase().endsWith(".pdf");
+}
+
+function isDocxFile(name: string): boolean {
+  return name.toLowerCase().endsWith(".docx");
 }
 
 function isTextFile(name: string): boolean {
@@ -148,15 +203,23 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
           if (isImageFile(file.type)) {
             const dataUrl = await readFileAsDataURL(file);
             processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
+          } else if (isPdfFile(file.name)) {
+            const text = await extractPdfText(file);
+            const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
+            processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
+          } else if (isDocxFile(file.name)) {
+            const text = await extractDocxText(file);
+            const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
+            processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else if (isTextFile(file.name)) {
             const text = await readFileAsText(file);
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else {
-            const dataUrl = await readFileAsDataURL(file);
-            processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
+            alert(`${file.name} tidak didukung. Format yang bisa dibaca: gambar, PDF, Word (.docx), dan file teks.`);
           }
-        } catch {
+        } catch (err) {
+          console.error("File read error:", err);
           alert(`Gagal membaca ${file.name}`);
         }
       }
