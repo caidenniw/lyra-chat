@@ -3,25 +3,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AttachedFile } from "../layout/AppShell";
 import { MODELS } from "../../lib/ai/models";
+import * as pdfjsLib from "pdfjs-dist";
+import mammoth from "mammoth";
 
-// Lazy-loaded libraries (only loaded when user uploads PDF/DOCX)
-let pdfjsLib: typeof import("pdfjs-dist") | null = null;
-let mammothLib: typeof import("mammoth") | null = null;
-
-async function loadPdfJs() {
-  if (!pdfjsLib) {
-    pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-  }
-  return pdfjsLib;
-}
-
-async function loadMammoth() {
-  if (!mammothLib) {
-    mammothLib = await import("mammoth");
-  }
-  return mammothLib;
-}
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
@@ -63,9 +49,8 @@ function readFileAsText(file: File): Promise<string> {
 
 async function extractPdfText(file: File): Promise<string> {
   try {
-    const lib = await loadPdfJs();
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const totalPages = pdf.numPages;
     const textParts: string[] = [];
 
@@ -96,9 +81,8 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 async function extractDocxText(file: File): Promise<string> {
-  const lib = await loadMammoth();
   const arrayBuffer = await file.arrayBuffer();
-  const result = await lib.extractRawText({ arrayBuffer });
+  const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value;
 }
 
