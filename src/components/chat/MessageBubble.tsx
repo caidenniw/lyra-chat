@@ -1,4 +1,4 @@
-import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { useState, memo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { Message } from '../layout/AppShell';
@@ -6,9 +6,10 @@ import type { Message } from '../layout/AppShell';
 interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
+  onRetry?: () => void;
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
   const isUser = message.role === 'user';
@@ -74,7 +75,9 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
         <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-300 ease-out max-w-full min-w-0 overflow-hidden ${
           isUser
             ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
-            : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
+            : message.isError
+              ? 'bg-red-50 border border-red-200 text-text rounded-bl-md'
+              : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
         }`}>
           {isEmpty ? (
             /* Typing animation dots */
@@ -123,21 +126,33 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
         {/* Actions */}
         {!isUser && !isEmpty && (
           <div className="flex items-center gap-0.5 md:gap-1 mt-1 md:mt-1.5 px-1">
-            <button
-              onClick={handleCopy}
-              className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press"
-            >
-              {copied ? <Check size={12} className="text-green-500 md:hidden" /> : <Copy size={12} className="md:hidden" />}
-              {copied ? <Check size={13} className="text-green-500 hidden md:block" /> : <Copy size={13} className="hidden md:block" />}
-            </button>
-            <button className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press">
-              <ThumbsUp size={12} className="md:hidden" />
-              <ThumbsUp size={13} className="hidden md:block" />
-            </button>
-            <button className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press">
-              <ThumbsDown size={12} className="md:hidden" />
-              <ThumbsDown size={13} className="hidden md:block" />
-            </button>
+            {onRetry ? (
+              <button
+                onClick={onRetry}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors btn-press"
+              >
+                <RotateCcw size={12} />
+                <span>Coba lagi</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleCopy}
+                  className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press"
+                >
+                  {copied ? <Check size={12} className="text-green-500 md:hidden" /> : <Copy size={12} className="md:hidden" />}
+                  {copied ? <Check size={13} className="text-green-500 hidden md:block" /> : <Copy size={13} className="hidden md:block" />}
+                </button>
+                <button className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press">
+                  <ThumbsUp size={12} className="md:hidden" />
+                  <ThumbsUp size={13} className="hidden md:block" />
+                </button>
+                <button className="p-1 md:p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press">
+                  <ThumbsDown size={12} className="md:hidden" />
+                  <ThumbsDown size={13} className="hidden md:block" />
+                </button>
+              </>
+            )}
             <span className="text-[9px] md:text-[10px] text-text-dim ml-1">
               {message.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </span>

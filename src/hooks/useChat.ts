@@ -11,6 +11,7 @@ interface UseChatOptions {
 
 interface UseChatReturn {
   sendMessage: (content: string, files?: AttachedFile[], conversationId?: string) => void;
+  retryLastMessage: () => void;
   isStreaming: boolean;
   isReasoning: boolean;
   streamingMessageId: string | null;
@@ -80,13 +81,15 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
 
     const getFriendlyError = (error: string): string => {
       if (error.includes('503') || error.includes('502') || error.includes('504') || error.includes('timeout')) {
-        return '⚠️ Model sedang sibuk atau respons terlalu lama (timeout). Silakan ganti ke model Luma untuk sementara waktu.';
+        return '⚠️ **Model sedang sibuk atau timeout.**\nSilakan tekan "Coba lagi" atau ganti model ke Luma.';
       } else if (error.includes('401') || error.includes('provider')) {
-        return '⚠️ Saat ini model sedang tidak tersedia. Sangat disarankan untuk mencoba model Luma.';
+        return '⚠️ **Model tidak tersedia.**\nSilakan ganti model atau coba lagi nanti.';
       } else if (error.includes('429') || error.includes('rate')) {
-        return '⚠️ Terlalu banyak permintaan ke model ini. Silakan ganti model atau coba lagi sebentar.';
+        return '⚠️ **Terlalu banyak permintaan.**\nTunggu sebentar lalu tekan "Coba lagi".';
       } else if (error.includes('network') || error.includes('fetch') || error.includes('Failed')) {
-        return '⚠️ Koneksi terputus. Pastikan internet Anda stabil.';
+        return '⚠️ **Koneksi terputus.**\nPeriksa internet Anda lalu tekan "Coba lagi".';
+      } else if (error.includes('Worker') || error.includes('worker')) {
+        return '⚠️ **Gagal memuat AI service.**\nRefresh halaman (Ctrl+Shift+R) lalu coba lagi.';
       }
       return '⚠️ Maaf, terjadi gangguan pada sistem AI. Silakan coba lagi nanti.';
     };
@@ -135,7 +138,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
         setMessages(prev =>
           prev.map(m =>
             m.id === assistantId
-              ? { ...m, content: friendlyError }
+              ? { ...m, content: friendlyError, isError: true }
               : m
           )
         );
@@ -348,5 +351,22 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     });
   }, [model, messages, onModelChange]);
 
-  return { sendMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages };
+  const retryLastMessage = useCallback(() => {
+    if (isStreaming) return;
+
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (!lastUserMsg) return;
+
+    // Find and remove the error message
+    const lastErrorMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.isError);
+    if (lastErrorMsg) {
+      setMessages(prev => prev.filter(m => m.id !== lastErrorMsg.id));
+    }
+
+    // Resend the last user message
+    sendMessage(lastUserMsg.content, lastUserMsg.files, lastUserMsg.conversationId);
+  }, [isStreaming, messages, sendMessage]);
+
+  return { sendMessage, retryLastMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages };
 }

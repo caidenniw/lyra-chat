@@ -31,6 +31,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   reasoningContent?: string;
+  isError?: boolean;
   files?: AttachedFile[];
   model?: string;
   conversationId?: string;
@@ -58,7 +59,7 @@ export function AppShell() {
   const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { sendMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages } = useChat({
+  const { sendMessage, retryLastMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages } = useChat({
     model: selectedModel,
     userId: user?.id,
     onModelChange: setSelectedModel,
@@ -357,7 +358,7 @@ export function AppShell() {
             </div>
           </div>
         ) : hasMessages ? (
-          <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} />
+          <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} />
         ) : (
           <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
         )}

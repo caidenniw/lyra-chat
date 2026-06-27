@@ -183,6 +183,7 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
   const [dragOver, setDragOver] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -207,9 +208,11 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
 
   const addFiles = useCallback(
     async (newFiles: FileList | File[]) => {
-      const fileArray = Array.from(newFiles);
-      const remaining = MAX_FILES - files.length;
-      const toProcess = fileArray.slice(0, remaining);
+      setIsProcessingFiles(true);
+      try {
+        const fileArray = Array.from(newFiles);
+        const remaining = MAX_FILES - files.length;
+        const toProcess = fileArray.slice(0, remaining);
 
       const processed: AttachedFile[] = [];
       for (const file of toProcess) {
@@ -251,6 +254,11 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
         }
       }
       setFiles((prev) => [...prev, ...processed].slice(0, MAX_FILES));
+      } catch (err) {
+        console.error('File processing error:', err);
+      } finally {
+        setIsProcessingFiles(false);
+      }
     },
     [files.length],
   );
@@ -301,6 +309,12 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
         {/* File preview strip */}
         {files.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
+            {isProcessingFiles && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary-subtle border border-primary/10 text-xs text-primary">
+                <span className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <span>Memproses file...</span>
+              </div>
+            )}
             {files.map((file, idx) => (
               <div key={idx} className="relative group flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-xl bg-surface border border-border shadow-soft animate-message-in">
                 {isImageFile(file.type) ? (

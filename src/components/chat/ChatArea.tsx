@@ -6,9 +6,10 @@ import type { Message } from '../layout/AppShell';
 interface ChatAreaProps {
   messages: Message[];
   streamingMessageId?: string | null;
+  onRetry?: () => void;
 }
 
-export function ChatArea({ messages, streamingMessageId }: ChatAreaProps) {
+export function ChatArea({ messages, streamingMessageId, onRetry }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -106,6 +107,7 @@ export function ChatArea({ messages, streamingMessageId }: ChatAreaProps) {
             key={msg.id}
             message={msg}
             isStreaming={streamingMessageId === msg.id}
+            onRetry={msg.isError ? onRetry : undefined}
           />
         ))}
         <div ref={bottomRef} />
