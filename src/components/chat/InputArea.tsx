@@ -6,11 +6,8 @@ import { MODELS } from "../../lib/ai/models";
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+// Configure PDF.js — run on main thread (reliable, no worker issues)
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
@@ -49,27 +46,36 @@ function readFileAsText(file: File): Promise<string> {
 }
 
 async function extractPdfText(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const totalPages = pdf.numPages;
-  const textParts: string[] = [];
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
+    const textParts: string[] = [];
 
-  // Limit to first 20 pages to avoid huge payloads
-  const pagesToRead = Math.min(totalPages, 20);
-  for (let i = 1; i <= pagesToRead; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items.map((item: any) => item.str).join(" ");
-    if (pageText.trim()) {
-      textParts.push(`[Halaman ${i}]\n${pageText}`);
+    // Limit to first 20 pages to avoid huge payloads
+    const pagesToRead = Math.min(totalPages, 20);
+    for (let i = 1; i <= pagesToRead; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item: any) => item.str).join(" ");
+      if (pageText.trim()) {
+        textParts.push(`[Halaman ${i}]\n${pageText}`);
+      }
     }
-  }
 
-  if (totalPages > 20) {
-    textParts.push(`\n[... ${totalPages - 20} halaman lagi tidak ditampilkan]`);
-  }
+    if (totalPages > 20) {
+      textParts.push(`\n[... ${totalPages - 20} halaman lagi tidak ditampilkan]`);
+    }
 
-  return textParts.join("\n\n");
+    const result = textParts.join("\n\n");
+    if (!result.trim()) {
+      return "[PDF ini sepertinya scanned image — tidak ada teks yang bisa diekstrak]";
+    }
+    return result;
+  } catch (err) {
+    console.error("PDF extraction error:", err);
+    return `[Gagal membaca PDF: ${err instanceof Error ? err.message : "unknown error"}]`;
+  }
 }
 
 async function extractDocxText(file: File): Promise<string> {
