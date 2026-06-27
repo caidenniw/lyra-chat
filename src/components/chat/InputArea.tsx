@@ -48,9 +48,10 @@ function readFileAsText(file: File): Promise<string> {
 }
 
 async function extractPdfText(file: File): Promise<string> {
+  let pdf: any = null;
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const totalPages = pdf.numPages;
     const textParts: string[] = [];
 
@@ -63,6 +64,7 @@ async function extractPdfText(file: File): Promise<string> {
       if (pageText.trim()) {
         textParts.push(`[Halaman ${i}]\n${pageText}`);
       }
+      page.cleanUp();
     }
 
     if (totalPages > 20) {
@@ -77,6 +79,11 @@ async function extractPdfText(file: File): Promise<string> {
   } catch (err) {
     console.error("PDF extraction error:", err);
     return `[Gagal membaca PDF: ${err instanceof Error ? err.message : "unknown error"}]`;
+  } finally {
+    // Always destroy PDF document to free worker resources
+    if (pdf) {
+      pdf.destroy();
+    }
   }
 }
 
