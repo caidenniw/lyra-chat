@@ -6,8 +6,8 @@ import { MODELS } from "../../lib/ai/models";
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 
-// Configure PDF.js — run on main thread (reliable, no worker issues)
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+// Configure PDF.js — use jsdelivr CDN worker (matches installed version)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
