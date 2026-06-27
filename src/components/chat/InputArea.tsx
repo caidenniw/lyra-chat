@@ -8,6 +8,7 @@ interface InputAreaProps {
   onSend: (content: string, files?: AttachedFile[]) => void;
   hasMessages?: boolean;
   isStreaming?: boolean;
+  isReasoning?: boolean;
   selectedModel: string;
   onModelChange: (model: string) => void;
 }
@@ -104,7 +105,7 @@ function isTextFile(name: string): boolean {
   return textExtensions.includes(ext);
 }
 
-export function InputArea({ onSend, isStreaming = false, selectedModel, onModelChange }: InputAreaProps) {
+export function InputArea({ onSend, isStreaming = false, isReasoning = false, selectedModel, onModelChange }: InputAreaProps) {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -201,7 +202,9 @@ export function InputArea({ onSend, isStreaming = false, selectedModel, onModelC
               <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
-            <span className="text-xs font-medium text-primary">Lyra sedang berpikir...</span>
+            <span className="text-xs font-medium text-primary">
+              {isReasoning ? 'Lyra sedang berpikir...' : 'Lyra sedang menjawab...'}
+            </span>
           </div>
         )}
 

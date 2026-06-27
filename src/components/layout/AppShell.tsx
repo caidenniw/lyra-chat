@@ -58,7 +58,7 @@ export function AppShell() {
   const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { sendMessage, isStreaming, streamingMessageId, messages, setMessages } = useChat({
+  const { sendMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages } = useChat({
     model: selectedModel,
     userId: user?.id,
     onModelChange: setSelectedModel,
@@ -365,6 +365,7 @@ export function AppShell() {
           onSend={handleSendMessage}
           hasMessages={!!hasMessages}
           isStreaming={isStreaming}
+          isReasoning={isReasoning}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
         />

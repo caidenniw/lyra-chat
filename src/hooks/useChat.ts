@@ -12,6 +12,7 @@ interface UseChatOptions {
 interface UseChatReturn {
   sendMessage: (content: string, files?: AttachedFile[], conversationId?: string) => void;
   isStreaming: boolean;
+  isReasoning: boolean;
   streamingMessageId: string | null;
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -23,6 +24,7 @@ import StreamWorker from '../lib/ai/streamWorker.ts?worker'
 export function useChat({ model, userId, onModelChange }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isReasoning, setIsReasoning] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   
   const workerRef = useRef<Worker | null>(null);
@@ -159,12 +161,16 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       const msg = e.data;
 
       if (msg.type === 'token') {
+        // Actual content started — no longer reasoning
+        setIsReasoning(false);
         // Batch tokens for smooth rendering
         tokenBufferRef.current += msg.data;
         if (!pendingFlushRef.current) {
           pendingFlushRef.current = requestAnimationFrame(flushTokens);
         }
       } else if (msg.type === 'reasoning') {
+        // Reasoning/thinking phase
+        setIsReasoning(true);
         // Batch reasoning tokens — flush more frequently for responsiveness
         reasoningBufferRef.current += msg.data;
         if (reasoningBufferRef.current.length >= 20 || !pendingFlushRef.current) {
@@ -173,8 +179,10 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       } else if (msg.type === 'done') {
         // Flush any remaining reasoning before done
         flushReasoning();
+        setIsReasoning(false);
         handleDone();
       } else if (msg.type === 'error') {
+        setIsReasoning(false);
         handleError(msg.data);
       }
     };
@@ -340,5 +348,5 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     });
   }, [model, messages, onModelChange]);
 
-  return { sendMessage, isStreaming, streamingMessageId, messages, setMessages };
+  return { sendMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages };
 }
