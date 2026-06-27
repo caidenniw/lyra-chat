@@ -17,8 +17,8 @@ interface UseChatReturn {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
-// Web Worker for streaming — imported as URL for React compatibility
-const workerUrl = new URL('../lib/ai/streamWorker.ts', import.meta.url);
+// Web Worker for streaming — imported via Vite worker plugin
+import StreamWorker from '../lib/ai/streamWorker.ts?worker'
 
 export function useChat({ model, userId, onModelChange }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,7 +37,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
 
   // Create and setup worker
   useEffect(() => {
-    const worker = new Worker(workerUrl, { type: 'module' });
+    const worker = new StreamWorker();
     workerRef.current = worker;
 
     const flushTokens = () => {
