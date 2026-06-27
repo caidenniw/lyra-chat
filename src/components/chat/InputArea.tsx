@@ -84,14 +84,7 @@ async function extractDocxText(file: File): Promise<string> {
   return result.value;
 }
 
-async function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-}
+
 
 function isImageFile(type: string): boolean {
   return type.startsWith("image/");
