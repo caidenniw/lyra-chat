@@ -286,7 +286,9 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     ];
 
     if (files && files.length > 0) {
+      console.log('[useChat] Files received:', files.length, files.map(f => ({name: f.name, hasContent: !!f.content, contentLen: f.content?.length})));
       const textFiles = files.filter(f => f.content);
+      console.log('[useChat] Text files with content:', textFiles.length);
       if (textFiles.length > 0) {
         const fileContext = textFiles
           .map(f => `[File: ${f.name}]\n${f.content}`)
@@ -295,6 +297,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
           role: 'user',
           content: `Berikut file yang saya lampirkan:\n\n${fileContext}`,
         });
+        console.log('[useChat] File context added to apiMessages, length:', fileContext.length);
       }
     }
 

@@ -50,7 +50,8 @@ function readFileAsText(file: File): Promise<string> {
 async function extractPdfText(file: File): Promise<string> {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     const totalPages = pdf.numPages;
     const textParts: string[] = [];
 
@@ -63,7 +64,7 @@ async function extractPdfText(file: File): Promise<string> {
       if (pageText.trim()) {
         textParts.push(`[Halaman ${i}]\n${pageText}`);
       }
-      page.cleanup();
+      // Note: page.cleanup() removed — it corrupts PDF.js worker state
     }
 
     if (totalPages > 20) {
@@ -209,12 +210,15 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
             const dataUrl = await readFileAsDataURL(file);
             processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
           } else if (isPdfFile(file.name)) {
+            console.log('[FileUpload] Extracting PDF:', file.name);
             let text = await extractPdfText(file);
+            console.log('[FileUpload] PDF extracted, length:', text.length, 'preview:', text.slice(0, 100));
             if (text.length > MAX_CONTENT_CHARS) {
               text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI]";
             }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
+            console.log('[FileUpload] File added to processed with content length:', text.length);
           } else if (isDocxFile(file.name)) {
             let text = await extractDocxText(file);
             if (text.length > MAX_CONTENT_CHARS) {
