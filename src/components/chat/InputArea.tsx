@@ -18,8 +18,10 @@ interface InputAreaProps {
   onModelChange: (model: string) => void;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_FILES = 5;
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_FILES = 8;
+// Approximate max chars for LLM context (~30K tokens)
+const MAX_CONTENT_CHARS = 120_000;
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
@@ -204,15 +206,24 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
             const dataUrl = await readFileAsDataURL(file);
             processed.push({ name: file.name, type: file.type, size: file.size, preview: dataUrl });
           } else if (isPdfFile(file.name)) {
-            const text = await extractPdfText(file);
+            let text = await extractPdfText(file);
+            if (text.length > MAX_CONTENT_CHARS) {
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+            }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else if (isDocxFile(file.name)) {
-            const text = await extractDocxText(file);
+            let text = await extractDocxText(file);
+            if (text.length > MAX_CONTENT_CHARS) {
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+            }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else if (isTextFile(file.name)) {
-            const text = await readFileAsText(file);
+            let text = await readFileAsText(file);
+            if (text.length > MAX_CONTENT_CHARS) {
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+            }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else {
