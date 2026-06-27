@@ -29,18 +29,33 @@ function parseBlocks(content: string): Block[] {
   const remaining = content.slice(lastIndex);
 
   // Check for incomplete code block (opening ``` without closing ```)
-  const incompleteMatch = remaining.match(/^```(\w*)\n([\s\S]*)$/);
-  if (incompleteMatch) {
-    // There's text before the incomplete code block
-    const beforeCode = remaining.slice(0, remaining.indexOf('```'));
-    if (beforeCode.trim()) {
-      blocks.push(...splitTables(beforeCode));
+  // Find LAST opening ``` that isn't part of a complete block
+  const openingIdx = remaining.lastIndexOf('```');
+  if (openingIdx !== -1) {
+    const afterBackticks = remaining.slice(openingIdx + 3);
+    // Check there's a newline after ``` (language marker) — not just random backticks
+    const newlineIdx = afterBackticks.indexOf('\n');
+    if (newlineIdx !== -1 || afterBackticks.trim() === '') {
+      const language = newlineIdx !== -1 ? afterBackticks.slice(0, newlineIdx).trim() : '';
+      const codeContent = newlineIdx !== -1 ? afterBackticks.slice(newlineIdx + 1) : '';
+
+      // Text before the incomplete code block
+      const beforeCode = remaining.slice(0, openingIdx);
+      if (beforeCode.trim()) {
+        blocks.push(...splitTables(beforeCode));
+      }
+
+      blocks.push({
+        type: 'code-progress',
+        content: codeContent,
+        language: language || undefined,
+      });
+    } else {
+      // No newline after ``` — treat as regular text
+      if (remaining.trim()) {
+        blocks.push(...splitTables(remaining));
+      }
     }
-    blocks.push({
-      type: 'code-progress',
-      content: incompleteMatch[2],
-      language: incompleteMatch[1] || undefined,
-    });
   } else if (remaining.trim()) {
     blocks.push(...splitTables(remaining));
   }
