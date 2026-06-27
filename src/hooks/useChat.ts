@@ -289,16 +289,6 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       console.log('[useChat] Files received:', files.length, files.map(f => ({name: f.name, hasContent: !!f.content, contentLen: f.content?.length})));
       const textFiles = files.filter(f => f.content);
       console.log('[useChat] Text files with content:', textFiles.length);
-      if (textFiles.length > 0) {
-        const fileContext = textFiles
-          .map(f => `[File: ${f.name}]\n${f.content}`)
-          .join('\n\n');
-        apiMessages.push({
-          role: 'user',
-          content: `Berikut file yang saya lampirkan:\n\n${fileContext}`,
-        });
-        console.log('[useChat] File context added to apiMessages, length:', fileContext.length);
-      }
     }
 
     const historyMessages = messages
@@ -312,12 +302,22 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
 
     let userContent = content;
     if (files && files.length > 0) {
-      const imageCount = files.filter(f => f.type.startsWith('image/')).length;
-      const fileCount = files.filter(f => !f.type.startsWith('image/')).length;
-      const parts = [];
-      if (imageCount > 0) parts.push(`${imageCount} gambar`);
-      if (fileCount > 0) parts.push(`${fileCount} file`);
-      userContent = `${content}\n\n[Lampiran: ${parts.join(', ')}]`;
+      const textFiles = files.filter(f => f.content);
+      if (textFiles.length > 0) {
+        // Include file content directly in the user message
+        const fileContent = textFiles
+          .map(f => `[File: ${f.name}]\n${f.content}`)
+          .join('\n\n');
+        userContent = `Berikut file yang saya lampirkan:\n\n${fileContent}\n\n---\nPertanyaan saya: ${content}`;
+        console.log('[useChat] Combined message length:', userContent.length);
+      } else {
+        const imageCount = files.filter(f => f.type.startsWith('image/')).length;
+        const fileCount = files.filter(f => !f.type.startsWith('image/')).length;
+        const parts = [];
+        if (imageCount > 0) parts.push(`${imageCount} gambar`);
+        if (fileCount > 0) parts.push(`${fileCount} file`);
+        userContent = `${content}\n\n[Lampiran: ${parts.join(', ')}]`;
+      }
     }
 
     const imageDatas = files
