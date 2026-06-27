@@ -24,6 +24,11 @@ interface TokenMessage {
   data: string;
 }
 
+interface ReasoningMessage {
+  type: 'reasoning';
+  data: string;
+}
+
 interface DoneMessage {
   type: 'done';
 }
@@ -132,9 +137,27 @@ async function runStream(
 
       try {
         const parsed = JSON.parse(data);
-        const content = parsed.choices?.[0]?.delta?.content;
+        const delta = parsed.choices?.[0]?.delta;
+        if (!delta) continue;
+
+        // Handle actual content (final response)
+        const content = delta.content;
         if (content) {
           const msg: TokenMessage = { type: 'token', data: content };
+          self.postMessage(msg);
+        }
+
+        // Handle reasoning content (DeepSeek format: reasoning_content)
+        const reasoningContent = delta.reasoning_content;
+        if (reasoningContent) {
+          const msg: ReasoningMessage = { type: 'reasoning', data: reasoningContent };
+          self.postMessage(msg);
+        }
+
+        // Handle reasoning content (MiMo format: reasoning)
+        const reasoning = delta.reasoning;
+        if (reasoning) {
+          const msg: ReasoningMessage = { type: 'reasoning', data: reasoning };
           self.postMessage(msg);
         }
       } catch {

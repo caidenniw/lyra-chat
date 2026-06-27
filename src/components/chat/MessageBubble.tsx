@@ -1,4 +1,4 @@
-import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info } from 'lucide-react';
+import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState, memo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { Message } from '../layout/AppShell';
@@ -10,9 +10,11 @@ interface MessageBubbleProps {
 
 export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
+  const [reasoningOpen, setReasoningOpen] = useState(false);
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
-  const isEmpty = !message.content && isStreaming;
+  const isEmpty = !message.content && !message.reasoningContent && isStreaming;
+  const hasReasoning = !!message.reasoningContent;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -89,6 +91,26 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
           ) : (
             /* AI — markdown with code blocks */
             <div className={`text-sm leading-relaxed ${isStreaming ? 'animate-content-fade' : ''}`}>
+              {/* Reasoning / Thinking section — collapsible */}
+              {hasReasoning && (
+                <div className="mb-2 last:mb-0">
+                  <button
+                    onClick={() => setReasoningOpen(!reasoningOpen)}
+                    className="flex items-center gap-1.5 text-[11px] md:text-xs text-text-dim hover:text-text-muted transition-colors mb-1"
+                  >
+                    {reasoningOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    <span className="font-medium">Proses berpikir</span>
+                    {isStreaming && !reasoningOpen && (
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse ml-1" />
+                    )}
+                  </button>
+                  {reasoningOpen && (
+                    <div className="text-[11px] md:text-xs text-text-dim/70 italic border-l-2 border-primary/20 pl-3 py-1 max-h-48 overflow-y-auto whitespace-pre-wrap">
+                      {message.reasoningContent}
+                    </div>
+                  )}
+                </div>
+              )}
               <MarkdownRenderer content={message.content} />
               {/* Blinking cursor during streaming */}
               {isStreaming && (

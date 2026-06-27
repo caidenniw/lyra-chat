@@ -30,6 +30,7 @@ export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  reasoningContent?: string;
   files?: AttachedFile[];
   model?: string;
   conversationId?: string;

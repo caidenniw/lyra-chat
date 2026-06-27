@@ -32,6 +32,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
   const currentSystemMsgRef = useRef<Message | null>(null);
   const currentConversationIdRef = useRef<string | undefined>(undefined);
   const tokenBufferRef = useRef('');
+  const reasoningBufferRef = useRef('');
   const pendingFlushRef = useRef<number | null>(null);
 
   // Create and setup worker
@@ -56,6 +57,23 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
         )
       );
       pendingFlushRef.current = null;
+    };
+
+    const flushReasoning = () => {
+      if (!reasoningBufferRef.current) return;
+      const batch = reasoningBufferRef.current;
+      reasoningBufferRef.current = '';
+      
+      const assistantId = currentAssistantMsgRef.current?.id;
+      if (!assistantId) return;
+      
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? { ...m, reasoningContent: (m.reasoningContent || '') + batch }
+            : m
+        )
+      );
     };
 
     const getFriendlyError = (error: string): string => {
@@ -146,7 +164,15 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
         if (!pendingFlushRef.current) {
           pendingFlushRef.current = requestAnimationFrame(flushTokens);
         }
+      } else if (msg.type === 'reasoning') {
+        // Batch reasoning tokens — flush more frequently for responsiveness
+        reasoningBufferRef.current += msg.data;
+        if (reasoningBufferRef.current.length >= 20 || !pendingFlushRef.current) {
+          flushReasoning();
+        }
       } else if (msg.type === 'done') {
+        // Flush any remaining reasoning before done
+        flushReasoning();
         handleDone();
       } else if (msg.type === 'error') {
         handleError(msg.data);
@@ -159,8 +185,9 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
 
     // Flush tokens when tab becomes visible again
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && tokenBufferRef.current) {
-        flushTokens();
+      if (document.visibilityState === 'visible') {
+        if (tokenBufferRef.current) flushTokens();
+        if (reasoningBufferRef.current) flushReasoning();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -222,6 +249,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     currentSystemMsgRef.current = systemMsg;
     currentConversationIdRef.current = conversationId;
     tokenBufferRef.current = '';
+    reasoningBufferRef.current = '';
     if (pendingFlushRef.current) {
       cancelAnimationFrame(pendingFlushRef.current);
       pendingFlushRef.current = null;
