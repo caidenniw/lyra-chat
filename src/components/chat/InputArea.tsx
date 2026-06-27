@@ -209,15 +209,14 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
   const addFiles = useCallback(
     async (newFiles: FileList | File[]) => {
       setIsProcessingFiles(true);
-      try {
-        const fileArray = Array.from(newFiles);
-        const remaining = MAX_FILES - files.length;
-        const toProcess = fileArray.slice(0, remaining);
+      const fileArray = Array.from(newFiles);
+      const remaining = MAX_FILES - files.length;
+      const toProcess = fileArray.slice(0, remaining);
 
       const processed: AttachedFile[] = [];
       for (const file of toProcess) {
         if (file.size > MAX_FILE_SIZE) {
-          alert(`${file.name} terlalu besar (maks 10MB)`);
+          alert(`${file.name} terlalu besar (maks 15MB)`);
           continue;
         }
         try {
@@ -227,38 +226,34 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
           } else if (isPdfFile(file.name)) {
             let text = await extractPdfText(file);
             if (text.length > MAX_CONTENT_CHARS) {
-              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI]";
             }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else if (isDocxFile(file.name)) {
             let text = await extractDocxText(file);
             if (text.length > MAX_CONTENT_CHARS) {
-              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI]";
             }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else if (isTextFile(file.name)) {
             let text = await readFileAsText(file);
             if (text.length > MAX_CONTENT_CHARS) {
-              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI — hanya 120K karakter pertama yang dikirim]";
+              text = text.slice(0, MAX_CONTENT_CHARS) + "\n\n[... dipotong: teks terlalu panjang untuk AI]";
             }
             const preview = text.slice(0, 200) + (text.length > 200 ? "..." : "");
             processed.push({ name: file.name, type: file.type, size: file.size, preview, content: text });
           } else {
-            alert(`${file.name} tidak didukung. Format yang bisa dibaca: gambar, PDF, Word (.docx), dan file teks.`);
+            alert(`${file.name} tidak didukung. Format: gambar, PDF, Word (.docx), file teks.`);
           }
         } catch (err) {
           console.error("File read error:", err);
-          alert(`Gagal membaca ${file.name}`);
+          alert(`Gagal membaca ${file.name}: ${err instanceof Error ? err.message : err}`);
         }
       }
       setFiles((prev) => [...prev, ...processed].slice(0, MAX_FILES));
-      } catch (err) {
-        console.error('File processing error:', err);
-      } finally {
-        setIsProcessingFiles(false);
-      }
+      setIsProcessingFiles(false);
     },
     [files.length],
   );
