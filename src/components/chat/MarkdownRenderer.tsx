@@ -5,10 +5,11 @@ interface MarkdownRendererProps {
   content: string;
 }
 
-// ── Parse markdown into blocks (text, code, table) ──
+// ── Parse markdown into blocks (text, code, code-progress, table) ──
 type Block =
   | { type: 'text'; content: string }
   | { type: 'code'; content: string; language?: string }
+  | { type: 'code-progress'; content: string; language?: string }
   | { type: 'table'; headers: string[]; rows: string[][] };
 
 function parseBlocks(content: string): Block[] {
@@ -25,8 +26,23 @@ function parseBlocks(content: string): Block[] {
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < content.length) {
-    blocks.push(...splitTables(content.slice(lastIndex)));
+  const remaining = content.slice(lastIndex);
+
+  // Check for incomplete code block (opening ``` without closing ```)
+  const incompleteMatch = remaining.match(/^```(\w*)\n([\s\S]*)$/);
+  if (incompleteMatch) {
+    // There's text before the incomplete code block
+    const beforeCode = remaining.slice(0, remaining.indexOf('```'));
+    if (beforeCode.trim()) {
+      blocks.push(...splitTables(beforeCode));
+    }
+    blocks.push({
+      type: 'code-progress',
+      content: incompleteMatch[2],
+      language: incompleteMatch[1] || undefined,
+    });
+  } else if (remaining.trim()) {
+    blocks.push(...splitTables(remaining));
   }
 
   return blocks;
@@ -164,6 +180,10 @@ export const MarkdownRenderer = React.memo(function MarkdownRenderer({ content }
       {blocks.map((block, i) => {
         if (block.type === 'code') {
           return <CodeBlock key={i} code={block.content} language={block.language} />;
+        }
+
+        if (block.type === 'code-progress') {
+          return <CodeBlock key={i} code={block.content} language={block.language} streaming />;
         }
 
         if (block.type === 'table') {

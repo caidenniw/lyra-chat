@@ -83,9 +83,10 @@ function detectLanguage(code: string): string {
 interface CodeBlockProps {
   code: string;
   language?: string;
+  streaming?: boolean;
 }
 
-export function CodeBlock({ code, language }: CodeBlockProps) {
+export function CodeBlock({ code, language, streaming = false }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const lang = language && language !== 'plaintext'
@@ -118,9 +119,18 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
     <div className="my-3 rounded-xl overflow-hidden border border-[#1e2a3a] shadow-soft">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#0d1b2a] border-b border-[#1e2a3a]">
-        <span className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
-          {displayName}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-medium text-slate-400 uppercase tracking-wide">
+            {displayName}
+          </span>
+          {streaming && (
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[10px] text-green-400/70">menulis...</span>
+            </span>
+          )}
+        </div>
+        {!streaming && (
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium
@@ -138,6 +148,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
             </>
           )}
         </button>
+        )}
       </div>
 
       {/* Code */}
@@ -147,6 +158,9 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
             className="font-mono text-slate-300"
             dangerouslySetInnerHTML={{ __html: highlighted }}
           />
+          {streaming && (
+            <span className="inline-block w-2 h-4 bg-green-400/80 animate-pulse ml-0.5 align-middle" />
+          )}
         </pre>
       </div>
     </div>
