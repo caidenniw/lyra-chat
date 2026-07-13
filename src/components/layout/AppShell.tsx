@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,7 +7,9 @@ import { Sidebar, type Project } from './Sidebar';
 import { ChatArea } from '../chat/ChatArea';
 import { InputArea } from '../chat/InputArea';
 import { EmptyState } from '../chat/EmptyState';
+import { ArtifactPreview } from '../artifact/ArtifactPreview';
 import { useChat } from '../../hooks/useChat';
+import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import {
   getConversations,
   getMessages,
@@ -58,10 +60,16 @@ export function AppShell() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
   const [isLoading, setIsLoading] = useState(false);
+  const [sandboxMode, setSandboxMode] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactBlock | null>(null);
+  const [panelWidth, setPanelWidth] = useState(50); // percentage for preview panel
+  const isDraggingRef = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
 
-  const { sendMessage, retryLastMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages } = useChat({
+  const { sendMessage, retryLastMessage, continuePartialArtifact, stopStreaming, isStreaming, isReasoning, streamingMessageId, messages, setMessages } = useChat({
     model: selectedModel,
     userId: user?.id,
+    sandboxMode,
     onModelChange: setSelectedModel,
   });
 
@@ -263,6 +271,48 @@ export function AppShell() {
 
   const hasMessages = activeMessages.length > 0;
 
+  const handleShowArtifact = useCallback((artifact: ArtifactBlock) => {
+    setActiveArtifact(artifact);
+  }, []);
+
+  const handleCloseArtifact = useCallback(() => {
+    setActiveArtifact(null);
+  }, []);
+
+  const handleSandboxToggle = useCallback(() => {
+    setSandboxMode(prev => !prev);
+  }, []);
+
+  // Drag handle for resizing preview panel
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDraggingRef.current || !mainRef.current) return;
+      const rect = mainRef.current.getBoundingClientRect();
+      const totalWidth = rect.width;
+      const mouseX = moveEvent.clientX - rect.left;
+      // Preview panel is on the right, so panel width = total - mouseX
+      const newPanelPct = ((totalWidth - mouseX) / totalWidth) * 100;
+      // Clamp between 30% and 70%
+      setPanelWidth(Math.max(30, Math.min(70, newPanelPct)));
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
   return (
     <div className="h-[100dvh] flex overflow-hidden bg-bg">
       {/* Auth Modal */}
@@ -349,27 +399,72 @@ export function AppShell() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center text-text-muted">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              <span className="text-sm">Memuat percakapan...</span>
+      <main ref={mainRef} className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
+        {/* Chat Panel */}
+        <div
+          className={`flex flex-col min-w-0 min-h-0 overflow-hidden ${activeArtifact ? 'hidden md:flex' : 'flex-1'}`}
+          style={activeArtifact ? { width: `${100 - panelWidth}%` } : undefined}
+        >
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center text-text-muted">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <span className="text-sm">Memuat percakapan...</span>
+              </div>
             </div>
+          ) : hasMessages ? (
+            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} />
+          ) : (
+            <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
+          )}
+          <InputArea
+            onSend={handleSendMessage}
+            hasMessages={!!hasMessages}
+            isStreaming={isStreaming}
+            isReasoning={isReasoning}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            sandboxMode={sandboxMode}
+            onSandboxToggle={handleSandboxToggle}
+            onStop={stopStreaming}
+          />
+        </div>
+
+        {/* Drag Handle — resizable divider */}
+        {activeArtifact && (
+          <div
+            onMouseDown={handleDragStart}
+            className="hidden md:flex w-1.5 h-full cursor-col-resize items-center justify-center
+              bg-border hover:bg-primary/30 active:bg-primary/40 transition-colors flex-shrink-0 group"
+          >
+            <div className="w-0.5 h-8 rounded-full bg-text-dim/30 group-hover:bg-primary/50 transition-colors" />
           </div>
-        ) : hasMessages ? (
-          <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} />
-        ) : (
-          <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
         )}
-        <InputArea
-          onSend={handleSendMessage}
-          hasMessages={!!hasMessages}
-          isStreaming={isStreaming}
-          isReasoning={isReasoning}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-        />
+
+        {/* Artifact Preview Panel — Desktop */}
+        {activeArtifact && (
+          <div
+            className="hidden md:block h-full overflow-hidden"
+            style={{ width: `${panelWidth}%` }}
+          >
+            <ArtifactPreview artifact={activeArtifact} onClose={handleCloseArtifact} />
+          </div>
+        )}
+
+        {/* Mobile Artifact Overlay */}
+        <AnimatePresence>
+          {activeArtifact && (
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed inset-0 z-50 md:hidden"
+            >
+              <ArtifactPreview artifact={activeArtifact} onClose={handleCloseArtifact} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

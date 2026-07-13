@@ -2,14 +2,18 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../layout/AppShell';
+import type { ArtifactBlock } from '../../lib/artifact/extractor';
+import { hasPartialArtifact } from '../../lib/artifact/extractor';
 
 interface ChatAreaProps {
   messages: Message[];
   streamingMessageId?: string | null;
   onRetry?: () => void;
+  onContinue?: () => void;
+  onShowArtifact?: (artifact: ArtifactBlock) => void;
 }
 
-export function ChatArea({ messages, streamingMessageId, onRetry }: ChatAreaProps) {
+export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, onShowArtifact }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -108,6 +112,8 @@ export function ChatArea({ messages, streamingMessageId, onRetry }: ChatAreaProp
             message={msg}
             isStreaming={streamingMessageId === msg.id}
             onRetry={msg.isError ? onRetry : undefined}
+            onContinue={hasPartialArtifact(msg.content) ? onContinue : undefined}
+            onShowArtifact={onShowArtifact}
           />
         ))}
         <div ref={bottomRef} />

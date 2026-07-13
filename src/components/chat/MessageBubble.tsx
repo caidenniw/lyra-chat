@@ -1,21 +1,63 @@
-import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
-import { useState, memo } from 'react';
+import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, RotateCcw, Loader2 } from 'lucide-react';
+import { useState, memo, useMemo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { ArtifactBanner } from '../artifact/ArtifactBanner';
+import { extractArtifacts, hasArtifact, hasPartialArtifact, stripArtifacts } from '../../lib/artifact/extractor';
+import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import type { Message } from '../layout/AppShell';
 
 interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
   onRetry?: () => void;
+  onContinue?: () => void;
+  onShowArtifact?: (artifact: ArtifactBlock) => void;
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry, onContinue, onShowArtifact }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const isEmpty = !message.content && !message.reasoningContent && isStreaming;
   const hasReasoning = !!message.reasoningContent;
+
+  // Extract artifacts from assistant messages (only when not streaming)
+  const artifacts = useMemo(() => {
+    if (isUser || isSystem || isStreaming) return [];
+    if (!hasArtifact(message.content)) return [];
+    return extractArtifacts(message.content);
+  }, [message.content, isUser, isSystem, isStreaming]);
+
+  // Check if artifact is being generated (streaming + contains start marker)
+  const isArtifactStreaming = useMemo(() => {
+    if (!isStreaming || isUser || isSystem) return false;
+    return message.content.includes('<!-- lyra-artifact');
+  }, [message.content, isStreaming, isUser, isSystem]);
+
+  // Check if artifact was truncated (start marker exists but no end marker, and NOT streaming)
+  const isPartialArtifact = useMemo(() => {
+    if (isStreaming || isUser || isSystem) return false;
+    return hasPartialArtifact(message.content);
+  }, [message.content, isStreaming, isUser, isSystem]);
+
+  // Strip artifacts from content for display (both streaming and done)
+  const displayContent = useMemo(() => {
+    const content = message.content;
+    if (isArtifactStreaming) {
+      // During streaming: remove everything from <!-- lyra-artifact onwards
+      const startIdx = content.indexOf('<!-- lyra-artifact');
+      if (startIdx !== -1) {
+        return content.substring(0, startIdx).trim();
+      }
+    }
+    if (isPartialArtifact) {
+      // Partial artifact (streaming ended, code incomplete): strip everything from marker
+      return stripArtifacts(content);
+    }
+    if (artifacts.length === 0) return content;
+    return stripArtifacts(content);
+  }, [message.content, artifacts, isArtifactStreaming, isPartialArtifact]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -114,7 +156,46 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
                   )}
                 </div>
               )}
-              <MarkdownRenderer content={message.content} />
+              <MarkdownRenderer content={displayContent} />
+              {/* Artifact building indicator during streaming */}
+              {isArtifactStreaming && (
+                <div className="mt-3 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/15 animate-message-in">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Loader2 size={14} className="text-primary animate-spin" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-primary">Membuat website...</div>
+                    <div className="text-[10px] text-text-dim">Preview akan muncul setelah selesai</div>
+                  </div>
+                </div>
+              )}
+              {/* Partial artifact — koneksi terputus */}
+              {isPartialArtifact && (
+                <div className="mt-3 flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 animate-message-in">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <Info size={14} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-amber-800">Website terpotong — koneksi terputus</div>
+                      <div className="text-[10px] text-amber-600">AI tidak sempat menyelesaikan kode. Tekan tombol di bawah untuk melanjutkan.</div>
+                    </div>
+                  </div>
+                  {onContinue && (
+                    <button
+                      onClick={onContinue}
+                      className="flex items-center gap-1.5 self-start px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 transition-colors btn-press"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Lanjutkan</span>
+                    </button>
+                  )}
+                </div>
+              )}
+              {/* Artifact banners (after streaming done) */}
+              {artifacts.length > 0 && onShowArtifact && artifacts.map((art) => (
+                <ArtifactBanner key={art.id} artifact={art} onPreview={onShowArtifact} />
+              ))}
               {/* Blinking cursor during streaming */}
               {isStreaming && (
                 <span className="ai-cursor" />

@@ -23,7 +23,7 @@ const ALLOWED_MODELS = [
 
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 50000;
-const MAX_TOKENS = 8192;
+const MAX_TOKENS = 32768;
 
 // Simple in-memory rate limit (per function instance)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();

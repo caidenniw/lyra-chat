@@ -2,16 +2,20 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { isMultimodalModel, getMultimodalModel, getModelById } from '../lib/ai/models';
 import type { Message, AttachedFile } from '../components/layout/AppShell';
 import { saveMessages } from '../services/chat';
+import { ARTIFACT_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../lib/artifact/templates';
 
 interface UseChatOptions {
   model: string;
   userId?: string;
+  sandboxMode?: boolean;
   onModelChange?: (model: string) => void;
 }
 
 interface UseChatReturn {
   sendMessage: (content: string, files?: AttachedFile[], conversationId?: string) => void;
   retryLastMessage: () => void;
+  continuePartialArtifact: () => void;
+  stopStreaming: () => void;
   isStreaming: boolean;
   isReasoning: boolean;
   streamingMessageId: string | null;
@@ -22,7 +26,7 @@ interface UseChatReturn {
 // Web Worker for streaming — imported via Vite worker plugin
 import StreamWorker from '../lib/ai/streamWorker.ts?worker'
 
-export function useChat({ model, userId, onModelChange }: UseChatOptions): UseChatReturn {
+export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOptions): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isReasoning, setIsReasoning] = useState(false);
@@ -37,6 +41,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
   const tokenBufferRef = useRef('');
   const reasoningBufferRef = useRef('');
   const pendingFlushRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
 
   // Create and setup worker
   useEffect(() => {
@@ -126,7 +131,10 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     };
 
     const handleError = (error: string) => {
-      console.error('Chat Error:', error);
+      console.error('[useChat] Chat Error:', error);
+      // Reset retry count
+      retryCountRef.current = 0;
+      
       const friendlyError = getFriendlyError(error);
       const assistantId = currentAssistantMsgRef.current?.id;
       const assistantMsg = currentAssistantMsgRef.current;
@@ -281,7 +289,7 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     const apiMessages: Array<{ role: string; content: string }> = [
       {
         role: 'system',
-        content: 'Kamu adalah Lyra, AI assistant yang cerdas dan membantu. Jawab dalam Bahasa Indonesia kecuali diminta bahasa lain. Gunakan format markdown jika diperlukan.\nATURAN KODE: Jika membuat kode yang sangat panjang (seperti file HTML + CSS + JS sekaligus), PECAH menjadi beberapa bagian. Berikan satu bagian dulu, lalu tanyakan apakah user ingin melanjutkan ke bagian berikutnya. JANGAN memberikan kode raksasa dalam satu balasan.',
+        content: sandboxMode ? ARTIFACT_SYSTEM_PROMPT : DEFAULT_SYSTEM_PROMPT,
       },
     ];
 
@@ -352,7 +360,35 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
       model: activeModel,
       apiBase: '/api',
     });
-  }, [model, messages, onModelChange]);
+  }, [model, messages, sandboxMode, onModelChange]);
+
+  const stopStreaming = useCallback(() => {
+    const worker = workerRef.current;
+    if (worker) {
+      worker.postMessage({ type: 'cancel' });
+    }
+    // Flush remaining tokens
+    if (tokenBufferRef.current) {
+      const batch = tokenBufferRef.current;
+      tokenBufferRef.current = '';
+      currentAssistantContentRef.current += batch;
+      const assistantId = currentAssistantMsgRef.current?.id;
+      if (assistantId) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId ? { ...m, content: m.content + batch } : m
+          )
+        );
+      }
+    }
+    if (pendingFlushRef.current) {
+      cancelAnimationFrame(pendingFlushRef.current);
+      pendingFlushRef.current = null;
+    }
+    setIsStreaming(false);
+    setIsReasoning(false);
+    setStreamingMessageId(null);
+  }, []);
 
   const retryLastMessage = useCallback(() => {
     if (isStreaming) return;
@@ -371,5 +407,25 @@ export function useChat({ model, userId, onModelChange }: UseChatOptions): UseCh
     sendMessage(lastUserMsg.content, lastUserMsg.files, lastUserMsg.conversationId);
   }, [isStreaming, messages, sendMessage]);
 
-  return { sendMessage, retryLastMessage, isStreaming, isReasoning, streamingMessageId, messages, setMessages };
+  const continuePartialArtifact = useCallback(() => {
+    if (isStreaming) return;
+
+    // Find the last assistant message with partial artifact
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && !m.isError);
+    if (!lastAssistantMsg) return;
+
+    const conversationId = lastAssistantMsg.conversationId;
+
+    // Remove the partial artifact message from state
+    setMessages(prev => prev.filter(m => m.id !== lastAssistantMsg.id));
+
+    // Send a new message that tells AI to continue the partial code
+    // Include the partial code as context
+    const partialCode = lastAssistantMsg.content;
+    const continueContent = `Lanjutkan pembuatan website dari kode sebelumnya yang terpotong. Berikut kode yang sudah ada:\n\n${partialCode}\n\nLanjutkan dari bagian terakhir yang terpotong. JANGAN mengulang dari awal. Tulis SELURUH kode lengkap dari awal sampai akhir dalam satu artifact block.`;
+    
+    sendMessage(continueContent, undefined, conversationId);
+  }, [isStreaming, messages, sendMessage]);
+
+  return { sendMessage, retryLastMessage, continuePartialArtifact, stopStreaming, isStreaming, isReasoning, streamingMessageId, messages, setMessages };
 }

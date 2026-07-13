@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AttachedFile } from "../layout/AppShell";
 import { MODELS } from "../../lib/ai/models";
+import { SandboxButton } from "../artifact/SandboxButton";
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 
@@ -16,6 +17,9 @@ interface InputAreaProps {
   isReasoning?: boolean;
   selectedModel: string;
   onModelChange: (model: string) => void;
+  sandboxMode?: boolean;
+  onSandboxToggle?: () => void;
+  onStop?: () => void;
 }
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
@@ -163,7 +167,7 @@ function isTextFile(name: string): boolean {
   return textExtensions.includes(ext);
 }
 
-export function InputArea({ onSend, isStreaming = false, isReasoning = false, selectedModel, onModelChange }: InputAreaProps) {
+export function InputArea({ onSend, isStreaming = false, isReasoning = false, selectedModel, onModelChange, sandboxMode = false, onSandboxToggle, onStop }: InputAreaProps) {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -364,7 +368,7 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
 
           {/* Send / Stop */}
           {isStreaming ? (
-            <button className="flex-shrink-0 p-2 rounded-full bg-accent text-white btn-press" title="Hentikan">
+            <button onClick={onStop} className="flex-shrink-0 p-2 rounded-full bg-accent text-white btn-press" title="Hentikan">
               <Square size={14} fill="currentColor" />
             </button>
           ) : (
@@ -376,8 +380,11 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
           )}
         </div>
 
-        {/* ===== Model Selector — below input, Claude style ===== */}
-        <div className="flex justify-center mt-2">
+        {/* ===== Model Selector + Sandbox — below input ===== */}
+        <div className="flex items-center justify-center gap-2 mt-2">
+          {onSandboxToggle && (
+            <SandboxButton isActive={sandboxMode} onToggle={onSandboxToggle} />
+          )}
           <button onClick={() => setModelPickerOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface border border-border
               text-text-dim hover:text-text hover:border-primary/20 transition-all text-xs font-medium btn-press">

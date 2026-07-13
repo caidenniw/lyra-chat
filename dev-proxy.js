@@ -35,46 +35,99 @@ const server = http.createServer((req, res) => {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(postData),
+          'Accept': 'text/event-stream',
+          'Connection': 'keep-alive',
         },
       };
 
       const proxyReq = https.request(options, (proxyRes) => {
         const contentType = proxyRes.headers['content-type'] || '';
+        const statusCode = proxyRes.statusCode || 200;
 
-        if (contentType.includes('text/event-stream')) {
-          // SSE streaming — pipe directly
-          res.writeHead(200, {
+        if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+          // SSE streaming — send chunks immediately with flush
+          res.writeHead(statusCode, {
             'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store',
             'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
+            'X-Accel-Buffering': 'no', // Disable nginx buffering if behind proxy
           });
-          proxyRes.pipe(res);
+
+          // Pipe with explicit flush on each chunk
+          proxyRes.on('data', (chunk) => {
+            const canContinue = res.write(chunk);
+            // Force flush
+            if (typeof res.flush === 'function') {
+              res.flush();
+            }
+            // Handle backpressure
+            if (!canContinue) {
+              proxyRes.pause();
+              res.once('drain', () => proxyRes.resume());
+            }
+          });
+
+          proxyRes.on('end', () => {
+            res.end();
+            console.log('[Proxy] SSE stream ended normally');
+          });
+
+        } else if (statusCode >= 400) {
+          // Upstream error — forward the error
+          console.error(`[Proxy] Upstream error ${statusCode}`);
+          let errorBody = '';
+          proxyRes.on('data', chunk => { errorBody += chunk; });
+          proxyRes.on('end', () => {
+            res.writeHead(statusCode, {
+              'Content-Type': contentType || 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            });
+            res.end(errorBody);
+          });
+
         } else {
           // JSON response
-          const headers = { ...proxyRes.headers, 'Access-Control-Allow-Origin': '*' };
-          res.writeHead(proxyRes.statusCode || 200, headers);
+          const headers = {
+            ...proxyRes.headers,
+            'Access-Control-Allow-Origin': '*',
+          };
+          res.writeHead(statusCode, headers);
           proxyRes.pipe(res);
         }
+
+        proxyRes.on('error', (err) => {
+          console.error('[Proxy] Upstream response error:', err.message);
+          if (!res.writableEnded) res.end();
+        });
       });
 
       proxyReq.on('error', (error) => {
-        console.error('Proxy error:', error.message);
+        console.error('[Proxy] Request error:', error.message);
         if (!res.headersSent) {
           res.writeHead(502, { 'Content-Type': 'application/json' });
         }
-        res.end(JSON.stringify({ error: error.message }));
+        if (!res.writableEnded) {
+          res.end(JSON.stringify({ error: error.message }));
+        }
       });
 
       proxyReq.write(postData);
       proxyReq.end();
     } catch (error) {
+      console.error('[Proxy] Parse error:', error.message);
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
   });
 });
 
+// No timeout — let streams run as long as needed
+server.timeout = 0;
+server.keepAliveTimeout = 0;
+
 server.listen(PORT, () => {
   console.log(`Dev proxy running on http://localhost:${PORT}`);
+  console.log(`Forwarding to https://opencode.ai/zen/v1/chat/completions`);
+  console.log(`No timeout — streams can run as long as needed`);
 });

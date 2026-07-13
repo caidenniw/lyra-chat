@@ -93,7 +93,7 @@ async function runStream(
     model,
     messages: processedMessages,
     stream: true,
-    max_tokens: 4096,
+    max_tokens: 32768,
   };
 
   const response = await fetch(`${apiBase}/chat`, {
