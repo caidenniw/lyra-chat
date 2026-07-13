@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import { X, Monitor, Tablet, Smartphone, Code2, Copy, Check, RotateCcw, FileArchive } from 'lucide-react';
 import JSZip from 'jszip';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
-import { buildPreviewHtml, INTERCEPT_SCRIPT } from '../../lib/artifact/extractor';
+import { buildPreviewHtml } from '../../lib/artifact/extractor';
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -51,20 +51,10 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     URL.revokeObjectURL(url);
   }, [files, artifact.title]);
 
-  const handleRefresh = useCallback(() => {
-    const iframe = iframeRef.current;
-    if (iframe) {
-      const doc = iframe.srcdoc;
-      iframe.srcdoc = '';
-      requestAnimationFrame(() => { iframe.srcdoc = doc; });
-    }
-  }, []);
-
   // Build combined HTML for preview
   const safeCode = useMemo(() => {
     let code: string;
     if (files.length === 1) {
-      // Single file — ensure it's valid HTML
       code = files[0].content;
       if (!code.trim().toLowerCase().startsWith('<!doctype') && !code.trim().toLowerCase().startsWith('<html')) {
         code = `<!DOCTYPE html>
@@ -80,14 +70,23 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     } else {
       code = buildPreviewHtml(files);
     }
-    // ALWAYS inject click interceptor before </body>
-    if (code.includes('</body>')) {
-      code = code.replace('</body>', INTERCEPT_SCRIPT + '\n</body>');
-    } else {
-      code += '\n' + INTERCEPT_SCRIPT;
-    }
     return code;
   }, [files]);
+
+  // Encode HTML to data: URL — iframe gets a DIFFERENT origin from parent
+  // This prevents ALL navigation to the parent app (Lyra)
+  const dataUrl = useMemo(() => {
+    return 'data:text/html;charset=utf-8,' + encodeURIComponent(safeCode);
+  }, [safeCode]);
+
+  const handleRefresh = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (iframe) {
+      // Force reload by toggling src
+      iframe.src = 'about:blank';
+      requestAnimationFrame(() => { iframe.src = dataUrl; });
+    }
+  }, [dataUrl]);
 
   const getFileIcon = (path: string) => {
     if (path.endsWith('.css')) return '🎨';
@@ -140,7 +139,6 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
         {showCode ? (
           /* Code View with tabs */
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* File tabs */}
             {files.length > 1 && (
               <div className="flex items-center gap-0 px-1 pt-2 pb-0 overflow-x-auto flex-shrink-0">
                 {files.map((file, idx) => (
@@ -159,7 +157,6 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
                 ))}
               </div>
             )}
-            {/* Code content */}
             <div className="flex-1 overflow-auto rounded-b-xl bg-[#1e1e2e] p-4">
               <pre className="text-[13px] leading-relaxed text-[#cdd6f4] font-mono whitespace-pre-wrap break-words">
                 <code>{files[activeFile]?.content || ''}</code>
@@ -167,7 +164,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
             </div>
           </div>
         ) : (
-          /* Preview iframe */
+          /* Preview iframe — data: URL for origin isolation */
           <div className="flex-1 flex items-start justify-center p-3 overflow-hidden">
             <div
               className="h-full bg-white rounded-xl shadow-medium overflow-hidden transition-all duration-300 ease-out"
@@ -175,9 +172,9 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
             >
               <iframe
                 ref={iframeRef}
-                srcDoc={safeCode}
+                src={dataUrl}
                 title={artifact.title || 'Website Preview'}
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts"
                 className="w-full h-full border-0"
                 style={{ minHeight: '100%' }}
               />

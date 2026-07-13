@@ -19,6 +19,7 @@ const ALLOWED_MODELS = [
   'deepseek-v4-flash-free',
   'mimo-v2.5-free',
   'nemotron-3-ultra-free',
+  'hy3-free',
 ];
 
 const MAX_MESSAGES = 50;

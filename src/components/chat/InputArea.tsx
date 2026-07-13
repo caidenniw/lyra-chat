@@ -1,4 +1,4 @@
-import { Send, Paperclip, Square, X, FileText, ChevronDown, Check, Star } from "lucide-react";
+import { Send, Paperclip, Square, X, FileText, ChevronDown, Check } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AttachedFile } from "../layout/AppShell";
@@ -428,11 +428,6 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className={`font-semibold text-sm ${selectedModel === model.id ? 'text-primary' : 'text-text'}`}>{model.name}</span>
-                        {model.badge === 'recommended' && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 font-semibold">
-                            <Star size={10} className="fill-amber-400" />Rekomendasi
-                          </span>
-                        )}
                         {model.multimodal && <span className="px-1.5 py-0.5 rounded text-[10px] bg-accent-subtle text-accent font-medium">Multimodal</span>}
                         {model.reasoning && <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary-subtle text-primary font-medium">Reasoning</span>}
                       </div>

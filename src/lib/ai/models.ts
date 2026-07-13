@@ -6,17 +6,22 @@ export interface ModelInfo {
   desc: string;      // Description
   reasoning: boolean;
   multimodal: boolean;
-  badge: 'default' | 'recommended';
 }
 
 export const MODELS: ModelInfo[] = [
+  {
+    id: 'hy3-free',
+    name: 'Hydra',
+    desc: 'Reasoning kuat, responsif',
+    reasoning: true,
+    multimodal: false,
+  },
   {
     id: 'deepseek-v4-flash-free',
     name: 'Nova',
     desc: 'Cepat & ringan untuk tugas sehari-hari',
     reasoning: true,
     multimodal: false,
-    badge: 'default',
   },
   {
     id: 'mimo-v2.5-free',
@@ -24,7 +29,6 @@ export const MODELS: ModelInfo[] = [
     desc: 'Multimodal, reasoning, serba bisa',
     reasoning: true,
     multimodal: true,
-    badge: 'recommended',
   },
   {
     id: 'nemotron-3-ultra-free',
@@ -32,7 +36,6 @@ export const MODELS: ModelInfo[] = [
     desc: 'Powerful untuk tugas kompleks',
     reasoning: true,
     multimodal: true,
-    badge: 'default',
   },
 ];
 
@@ -41,7 +44,7 @@ export function getModelById(id: string): ModelInfo | undefined {
 }
 
 export function getMultimodalModel(): ModelInfo {
-  return MODELS.find(m => m.multimodal) || MODELS[1]; // Default to Luma
+  return MODELS.find(m => m.multimodal) || MODELS[2]; // Default to Luma
 }
 
 export function isMultimodalModel(modelId: string): boolean {

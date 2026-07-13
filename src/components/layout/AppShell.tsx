@@ -58,7 +58,7 @@ export function AppShell() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState('mimo-v2.5-free');
+  const [selectedModel, setSelectedModel] = useState('hy3-free');
   const [isLoading, setIsLoading] = useState(false);
   const [sandboxMode, setSandboxMode] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactBlock | null>(null);
