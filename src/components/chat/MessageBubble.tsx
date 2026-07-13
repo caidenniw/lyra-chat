@@ -55,9 +55,21 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
       // Partial artifact (streaming ended, code incomplete): strip everything from marker
       return stripArtifacts(content);
     }
-    if (artifacts.length === 0) return content;
+    if (artifacts.length === 0) {
+      // Also strip any ```html code blocks during streaming (AI writing code outside artifact)
+      if (isStreaming) {
+        let cleaned = content;
+        // Remove ```html ... ``` blocks
+        cleaned = cleaned.replace(/```html[\s\S]*?```/g, '');
+        // Remove unclosed ```html at end
+        cleaned = cleaned.replace(/```html[\s\S]*$/, '');
+        cleaned = cleaned.trim();
+        if (cleaned.length > 0) return cleaned;
+      }
+      return content;
+    }
     return stripArtifacts(content);
-  }, [message.content, artifacts, isArtifactStreaming, isPartialArtifact]);
+  }, [message.content, artifacts, isArtifactStreaming, isPartialArtifact, isStreaming]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);

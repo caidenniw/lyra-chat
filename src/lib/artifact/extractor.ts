@@ -144,31 +144,69 @@ export function stripArtifacts(content: string): string {
  */
 export const INTERCEPT_SCRIPT = `<script>
 (function() {
-  // Block ALL link clicks — only allow anchor (#) links and buttons without href
+  // 1. Block ALL link clicks — only allow anchor (#) links
   document.addEventListener('click', function(e) {
     var link = e.target.closest('a');
-    if (!link) return; // Not a link — let it through (buttons, onclick, etc.)
+    if (!link) return;
     var href = link.getAttribute('href');
-    // Allow anchor links (#section) — scroll within page
     if (href && href.startsWith('#')) return;
-    // Allow javascript: links
     if (href && href.startsWith('javascript:')) return;
-    // Block ALL other navigation — prevents going to Lyra app
     e.preventDefault();
     e.stopPropagation();
-    // If it's a button-like link with onclick, trigger the onclick manually
-    if (link.onclick) {
-      link.onclick.call(link, e);
-    }
-    console.log('[Lyra Preview] Blocked navigation:', href);
+    if (link.onclick) link.onclick.call(link, e);
+    console.log('[Lyra Preview] Blocked link:', href);
   }, true);
-  // Block ALL form submissions
+
+  // 2. Block ALL form submissions
   document.addEventListener('submit', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[Lyra Preview] Blocked form submission');
+    console.log('[Lyra Preview] Blocked form submit');
   }, true);
-  // Block window.location changes from scripts
+
+  // 3. Block window.location navigation attempts
+  var blocked = false;
+  function blockNavigation(url) {
+    if (blocked) return;
+    blocked = true;
+    console.log('[Lyra Preview] Blocked navigation to:', url);
+    setTimeout(function() { blocked = false; }, 100);
+  }
+
+  // Block location.assign and location.replace
+  var origAssign = location.assign.bind(location);
+  var origReplace = location.replace.bind(location);
+  location.assign = function(url) { blockNavigation(url); };
+  location.replace = function(url) { blockNavigation(url); };
+
+  // Block window.location = "url" and location.href = "url"
+  try {
+    Object.defineProperty(window, 'location', {
+      configurable: false,
+      enumerable: true,
+      value: new Proxy(window.location, {
+        set: function(target, prop, value) {
+          if (prop === 'href' || prop === 'pathname') {
+            blockNavigation(value);
+            return true;
+          }
+          target[prop] = value;
+          return true;
+        },
+        get: function(target, prop) {
+          if (prop === 'assign') return function(url) { blockNavigation(url); };
+          if (prop === 'replace') return function(url) { blockNavigation(url); };
+          return typeof target[prop] === 'function' ? target[prop].bind(target) : target[prop];
+        }
+      })
+    });
+  } catch(e) { /* proxy not supported, fallback */ }
+
+  // 4. Block window.open
+  var origOpen = window.open;
+  window.open = function(url) { blockNavigation(url); return null; };
+
+  // 5. Block history navigation
   history.pushState = function() { console.log('[Lyra Preview] Blocked pushState'); };
   history.replaceState = function() { console.log('[Lyra Preview] Blocked replaceState'); };
 })();
