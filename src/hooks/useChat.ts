@@ -86,7 +86,7 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
 
     const getFriendlyError = (error: string): string => {
       if (error.includes('503') || error.includes('502') || error.includes('504') || error.includes('timeout')) {
-        return '⚠️ **Model sedang sibuk atau timeout.**\nSilakan tekan "Coba lagi" atau ganti model ke Luma.';
+        return '⚠️ **Model sedang sibuk atau timeout.**\nSilakan tekan "Coba lagi" atau ganti model lain.';
       } else if (error.includes('401') || error.includes('provider')) {
         return '⚠️ **Model tidak tersedia.**\nSilakan ganti model atau coba lagi nanti.';
       } else if (error.includes('429') || error.includes('rate')) {
