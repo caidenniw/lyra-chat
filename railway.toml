@@ -3,6 +3,7 @@ builder = "nixpacks"
 
 [build.env]
 NODE_ENV = "production"
+NODE_VERSION = "22"
 
 [deploy]
 startCommand = "npm run build && npm start"
