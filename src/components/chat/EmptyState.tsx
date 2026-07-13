@@ -48,7 +48,7 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
           <div className="w-10 h-10 md:w-16 md:h-16 mx-auto mb-2 md:mb-5 animate-message-in">
             <img src={logoIcon} alt="Lyra" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-lg md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
             {(() => {
               const h = new Date().getHours();
               const time = h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat malam';

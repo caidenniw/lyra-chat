@@ -19,13 +19,13 @@ export function SandboxButton({ isActive, onToggle }: SandboxButtonProps) {
       {isActive ? (
         <>
           <Globe size={14} />
-          <span className="hidden sm:inline">Website Mode</span>
+          <span>Website Mode</span>
           <X size={12} className="opacity-60" />
         </>
       ) : (
         <>
           <Globe size={14} />
-          <span className="hidden sm:inline">Buat Website</span>
+          <span>Buat Website</span>
         </>
       )}
     </button>
