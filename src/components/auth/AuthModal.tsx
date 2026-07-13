@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowLeft, LogIn } from 'lucide-react';
+import { Mail, ArrowLeft, LogIn, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import logoIcon from '../../assets/gambar2.png';
 
@@ -12,12 +12,18 @@ interface AuthModalProps {
 type AuthStep = 'email' | 'otp';
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { sendOtp, verifyOtp, signInWithGoogle } = useAuth();
+  const { sendOtp, verifyOtp } = useAuth();
   const [step, setStep] = useState<AuthStep>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +50,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     if (authError) {
       setError(authError.message);
     } else {
-      onClose(); // Tutup modal jika sukses
+      onClose();
     }
     setLoading(false);
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
-    setLoading(true);
-    const { error: authError } = await signInWithGoogle();
-    if (authError) setError(authError.message);
-    setLoading(false);
+  const handleGoogleLogin = () => {
+    showToast('Login dengan Google belum tersedia');
   };
 
   return (
@@ -195,6 +197,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </AnimatePresence>
               </div>
             </div>
+
+            {/* Toast notification */}
+            <AnimatePresence>
+              {toast && (
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  className="absolute bottom-4 left-4 right-4 flex items-center gap-2 px-4 py-2.5 bg-text/90 text-white text-xs rounded-xl shadow-lg"
+                >
+                  <span className="flex-1">{toast}</span>
+                  <button onClick={() => setToast(null)} className="p-0.5 rounded hover:bg-white/20 transition-colors">
+                    <X size={12} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
