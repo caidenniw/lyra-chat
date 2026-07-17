@@ -338,6 +338,7 @@ export function copyConversationToClipboard(conversation: Conversation): string 
 
 // Delete project
 export async function deleteProject(id: string) {
+  if (!supabase) return false;
 
   const { error } = await supabase
     .from('projects')
