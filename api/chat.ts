@@ -1,12 +1,12 @@
 // api/chat.ts — Vercel Serverless Function
-// Proxies requests to OpenCode Zen API with streaming support
+// Proxies requests to AI provider (OpenCode Zen API) with streaming support
 
 export const config = {
   runtime: 'edge',
   maxDuration: 60,
 };
 
-// === SECURITY CONFIG ===
+// === SECURITY CONFIG (from environment) ===
 const ALLOWED_ORIGINS = [
   'https://lyra-chatai.vercel.app',
   'https://caai-chat.vercel.app',
@@ -15,16 +15,13 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
-const ALLOWED_MODELS = [
-  'deepseek-v4-flash-free',
-  'mimo-v2.5-free',
-  'nemotron-3-ultra-free',
-  'hy3-free',
-];
+const AI_BASE_URL = process.env.AI_BASE_URL || 'https://opencode.ai/zen/v1/chat/completions';
+const AI_API_KEY = process.env.AI_API_KEY || '';
+const ALLOWED_MODELS = (process.env.AI_ALLOWED_MODELS || 'deepseek-v4-flash-free,mimo-v2.5-free,nemotron-3-ultra-free,hy3-free').split(',');
+const MAX_TOKENS = parseInt(process.env.AI_MAX_TOKENS || '32768', 10);
 
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 50000;
-const MAX_TOKENS = 32768;
 
 // Simple in-memory rate limit (per function instance)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -147,12 +144,20 @@ export default async function handler(req: Request) {
     // Validate max_tokens
     const safeMaxTokens = Math.min(Math.max(1, max_tokens), MAX_TOKENS);
 
-    // Call OpenCode Zen API
-    const response = await fetch('https://opencode.ai/zen/v1/chat/completions', {
+    // Build headers for AI provider call
+    const aiHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add API key if configured (paid tier / non-free endpoint)
+    if (AI_API_KEY) {
+      aiHeaders['Authorization'] = `Bearer ${AI_API_KEY}`;
+    }
+
+    // Call AI provider
+    const response = await fetch(AI_BASE_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: aiHeaders,
       body: JSON.stringify({
         model,
         messages,

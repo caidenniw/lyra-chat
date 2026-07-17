@@ -1,8 +1,17 @@
-// dev-proxy.js — Local dev proxy server for OpenCode Zen SSE streaming
+// dev-proxy.js — Local dev proxy server for AI provider SSE streaming
 import http from 'http';
 import https from 'https';
+import { URL } from 'url';
 
 const PORT = 3001;
+
+// ── AI Provider Config (from environment, fallback to defaults) ───
+const AI_BASE_URL = process.env.AI_BASE_URL || 'https://opencode.ai/zen/v1/chat/completions';
+const AI_API_KEY = process.env.AI_API_KEY || '';
+
+const aiUrl = new URL(AI_BASE_URL);
+const AI_HOSTNAME = aiUrl.hostname;
+const AI_PATH = aiUrl.pathname;
 
 const server = http.createServer((req, res) => {
   // CORS
@@ -27,17 +36,25 @@ const server = http.createServer((req, res) => {
       const parsed = JSON.parse(body);
       const postData = JSON.stringify(parsed);
 
+      // Build headers
+      const headers = {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+        'Accept': 'text/event-stream',
+        'Connection': 'keep-alive',
+      };
+
+      // Add API key if configured
+      if (AI_API_KEY) {
+        headers['Authorization'] = `Bearer ${AI_API_KEY}`;
+      }
+
       const options = {
-        hostname: 'opencode.ai',
+        hostname: AI_HOSTNAME,
         port: 443,
-        path: '/zen/v1/chat/completions',
+        path: AI_PATH,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData),
-          'Accept': 'text/event-stream',
-          'Connection': 'keep-alive',
-        },
+        headers,
       };
 
       const proxyReq = https.request(options, (proxyRes) => {
@@ -51,17 +68,14 @@ const server = http.createServer((req, res) => {
             'Cache-Control': 'no-cache, no-store',
             'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
-            'X-Accel-Buffering': 'no', // Disable nginx buffering if behind proxy
+            'X-Accel-Buffering': 'no',
           });
 
-          // Pipe with explicit flush on each chunk
           proxyRes.on('data', (chunk) => {
             const canContinue = res.write(chunk);
-            // Force flush
             if (typeof res.flush === 'function') {
               res.flush();
             }
-            // Handle backpressure
             if (!canContinue) {
               proxyRes.pause();
               res.once('drain', () => proxyRes.resume());
@@ -74,7 +88,6 @@ const server = http.createServer((req, res) => {
           });
 
         } else if (statusCode >= 400) {
-          // Upstream error — forward the error
           console.error(`[Proxy] Upstream error ${statusCode}`);
           let errorBody = '';
           proxyRes.on('data', chunk => { errorBody += chunk; });
@@ -87,12 +100,11 @@ const server = http.createServer((req, res) => {
           });
 
         } else {
-          // JSON response
-          const headers = {
+          const responseHeaders = {
             ...proxyRes.headers,
             'Access-Control-Allow-Origin': '*',
           };
-          res.writeHead(statusCode, headers);
+          res.writeHead(statusCode, responseHeaders);
           proxyRes.pipe(res);
         }
 
@@ -128,6 +140,7 @@ server.keepAliveTimeout = 0;
 
 server.listen(PORT, () => {
   console.log(`Dev proxy running on http://localhost:${PORT}`);
-  console.log(`Forwarding to https://opencode.ai/zen/v1/chat/completions`);
+  console.log(`Forwarding to ${AI_HOSTNAME}${AI_PATH}`);
+  console.log(`API Key: ${AI_API_KEY ? 'configured' : 'not set (free tier)'}`);
   console.log(`No timeout — streams can run as long as needed`);
 });

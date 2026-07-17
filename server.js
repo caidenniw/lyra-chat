@@ -1,6 +1,7 @@
 // server.js — Production server for Railway deployment
 import express from 'express';
 import https from 'https';
+import { URL } from 'url';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -10,17 +11,19 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security config
-const ALLOWED_MODELS = [
-  'deepseek-v4-flash-free',
-  'mimo-v2.5-free',
-  'nemotron-3-ultra-free',
-  'hy3-free',
-];
+// ── AI Provider Config (from environment) ──────────────────────────
+const AI_BASE_URL = process.env.AI_BASE_URL || 'https://opencode.ai/zen/v1/chat/completions';
+const AI_API_KEY = process.env.AI_API_KEY || '';
+const ALLOWED_MODELS = (process.env.AI_ALLOWED_MODELS || 'deepseek-v4-flash-free,mimo-v2.5-free,nemotron-3-ultra-free,hy3-free').split(',');
+const MAX_TOKENS = parseInt(process.env.AI_MAX_TOKENS || '32768', 10);
+
+// Parse base URL into hostname + path
+const aiUrl = new URL(AI_BASE_URL);
+const AI_HOSTNAME = aiUrl.hostname;
+const AI_PATH = aiUrl.pathname;
 
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 50000;
-const MAX_TOKENS = 32768;
 
 // Simple rate limit
 const rateLimitMap = new Map();
@@ -66,7 +69,7 @@ app.post('/api/chat', (req, res) => {
     }
     const safeMaxTokens = Math.min(Math.max(1, max_tokens), MAX_TOKENS);
 
-    // Call OpenCode Zen API
+    // Call AI provider
     const postData = JSON.stringify({
       model,
       messages,
@@ -74,16 +77,23 @@ app.post('/api/chat', (req, res) => {
       stream: true,
     });
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData),
+      'Accept': 'text/event-stream',
+    };
+
+    // Add API key if configured (paid tier / non-free endpoint)
+    if (AI_API_KEY) {
+      headers['Authorization'] = `Bearer ${AI_API_KEY}`;
+    }
+
     const options = {
-      hostname: 'opencode.ai',
+      hostname: AI_HOSTNAME,
       port: 443,
-      path: '/zen/v1/chat/completions',
+      path: AI_PATH,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData),
-        'Accept': 'text/event-stream',
-      },
+      headers,
     };
 
     const proxyReq = https.request(options, (proxyRes) => {
@@ -152,4 +162,6 @@ app.get('/{*splat}', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Lyra Chat server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`AI Provider: ${AI_HOSTNAME}${AI_PATH}`);
+  console.log(`Allowed models: ${ALLOWED_MODELS.length} configured`);
 });

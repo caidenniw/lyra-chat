@@ -1,4 +1,6 @@
 // src/lib/ai/models.ts — Shared model configuration
+// ⚠️ IMPORTANT: Make sure model IDs here match AI_ALLOWED_MODELS in .env
+// Backend validates against .env list — frontend uses this for display.
 
 export interface ModelInfo {
   id: string;        // API model ID
