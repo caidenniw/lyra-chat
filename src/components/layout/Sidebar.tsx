@@ -16,6 +16,7 @@ interface SidebarProps {
   onAuthModalOpen: () => void;
   onSignOut: () => void;
   conversations: Array<{ id: string; title: string; projectId?: string | null }>;
+  allMessages?: Array<{ conversationId?: string; content: string }>;
   projects: Project[];
   activeId: string | null;
   onSelect: (id: string) => void;
@@ -29,7 +30,7 @@ interface SidebarProps {
   onTogglePin?: (id: string) => void;
 }
 
-export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject, onExportChat, pinnedConversations, onTogglePin }: SidebarProps) {
+export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, allMessages, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject, onExportChat, pinnedConversations, onTogglePin }: SidebarProps) {
   const [search, setSearch] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [showNewProject, setShowNewProject] = useState(false);
@@ -77,7 +78,18 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  const filteredConversations = search ? conversations.filter((c) => c.title.toLowerCase().includes(search.toLowerCase())) : conversations;
+  const filteredConversations = search
+    ? conversations.filter((c) => {
+        // Search by title
+        if (c.title.toLowerCase().includes(search.toLowerCase())) return true;
+        // Search by message content
+        if (allMessages && allMessages.length > 0) {
+          const convMessages = allMessages.filter(m => m.conversationId === c.id);
+          return convMessages.some(m => m.content.toLowerCase().includes(search.toLowerCase()));
+        }
+        return false;
+      })
+    : conversations;
 
   // Sort: pinned conversations first
   const sortFn = (a: { id: string }, b: { id: string }) => {

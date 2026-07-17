@@ -377,6 +377,7 @@ export function AppShell() {
             onAuthModalOpen={() => setAuthModalOpen(true)}
             onSignOut={signOut}
             conversations={conversations}
+            allMessages={messages}
             projects={projects}
             activeId={activeConversationId}
             onSelect={handleSelectConversation}
@@ -417,6 +418,7 @@ export function AppShell() {
                 onAuthModalOpen={() => setAuthModalOpen(true)}
                 onSignOut={signOut}
                 conversations={conversations}
+                allMessages={messages}
                 projects={projects}
                 activeId={activeConversationId}
                 onSelect={handleSelectConversation}
