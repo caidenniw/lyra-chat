@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Copy, Check } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../layout/AppShell';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
@@ -11,9 +11,11 @@ interface ChatAreaProps {
   onRetry?: () => void;
   onContinue?: () => void;
   onShowArtifact?: (artifact: ArtifactBlock) => void;
+  onCopyAll?: () => void;
+  copiedAll?: boolean;
 }
 
-export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, onShowArtifact }: ChatAreaProps) {
+export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, onShowArtifact, onCopyAll, copiedAll }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -106,6 +108,18 @@ export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, on
       className="flex-1 overflow-y-auto"
     >
       <div className="max-w-3xl mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-5 relative">
+        {/* Copy All button — visible when there are messages */}
+        {messages.length > 0 && onCopyAll && (
+          <div className="flex justify-end -mb-2">
+            <button
+              onClick={onCopyAll}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] text-text-dim hover:text-text hover:bg-bg-alt rounded-lg transition-colors btn-press"
+            >
+              {copiedAll ? <Check size={10} className="text-green-500" /> : <Copy size={10} />}
+              <span>{copiedAll ? 'Tersalin!' : 'Salin semua'}</span>
+            </button>
+          </div>
+        )}
         {messages.map((msg) => (
           <MessageBubble
             key={msg.id}

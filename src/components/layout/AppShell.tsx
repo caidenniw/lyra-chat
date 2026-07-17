@@ -18,6 +18,8 @@ import {
   updateConversation as updateConversationDb,
   deleteConversation as deleteConversationDb,
   createProject as createProjectDb,
+  exportConversationAsMarkdown,
+  copyConversationToClipboard,
 } from '../../services/chat';
 
 export interface AttachedFile {
@@ -63,6 +65,7 @@ export function AppShell() {
   const [sandboxMode, setSandboxMode] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<ArtifactBlock | null>(null);
   const [panelWidth, setPanelWidth] = useState(50); // percentage for preview panel
+  const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(new Set());
   const isDraggingRef = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -279,8 +282,51 @@ export function AppShell() {
     setActiveArtifact(null);
   }, []);
 
-  const handleSandboxToggle = useCallback(() => {
+  const handleExportChat = useCallback((id: string) => {
+    const conv = conversations.find(c => c.id === id);
+    if (!conv) return;
+
+    // Build full conversation with messages
+    const convMessages = messages.filter(m => m.conversationId === id);
+    const fullConv = { ...conv, messages: convMessages };
+    const md = exportConversationAsMarkdown(fullConv);
+
+    // Download as .md file
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileName = conv.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.md';
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [conversations, messages]);
+
+  const [copiedAll, setCopiedAll] = useState(false);
+  const handleCopyAllChat = useCallback(() => {
+    if (!activeConversation) return;
+    const convMessages = messages.filter(m => m.conversationId === activeConversationId);
+    const fullConv = { ...activeConversation, messages: convMessages };
+    const text = copyConversationToClipboard(fullConv);
+    navigator.clipboard.writeText(text);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  }, [activeConversation, activeConversationId, messages]);
+
+  const sandboxToggle = useCallback(() => {
     setSandboxMode(prev => !prev);
+  }, []);
+
+  const handleTogglePin = useCallback((id: string) => {
+    setPinnedConversations(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   }, []);
 
   // Drag handle for resizing preview panel
@@ -339,6 +385,9 @@ export function AppShell() {
             onNewChat={handleNewChat}
             onCreateProject={handleCreateProject}
             onMoveToProject={handleMoveToProject}
+            onExportChat={handleExportChat}
+            pinnedConversations={pinnedConversations}
+            onTogglePin={handleTogglePin}
           />
         </div>
       </motion.div>
@@ -376,6 +425,9 @@ export function AppShell() {
                 onNewChat={handleNewChat}
                 onCreateProject={handleCreateProject}
                 onMoveToProject={handleMoveToProject}
+                onExportChat={handleExportChat}
+                pinnedConversations={pinnedConversations}
+                onTogglePin={handleTogglePin}
               />
             </motion.div>
           </>
@@ -413,7 +465,7 @@ export function AppShell() {
               </div>
             </div>
           ) : hasMessages ? (
-            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} />
+            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} onCopyAll={handleCopyAllChat} copiedAll={copiedAll} />
           ) : (
             <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
           )}
@@ -425,7 +477,7 @@ export function AppShell() {
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
             sandboxMode={sandboxMode}
-            onSandboxToggle={handleSandboxToggle}
+            onSandboxToggle={sandboxToggle}
             onStop={stopStreaming}
           />
         </div>

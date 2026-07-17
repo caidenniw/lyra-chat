@@ -299,9 +299,45 @@ export async function updateProject(id: string, updates: { name?: string; type?:
   return true;
 }
 
+// Export conversation as markdown
+export function exportConversationAsMarkdown(conversation: Conversation): string {
+  let md = `# ${conversation.title}\n\n`;
+  md += `*Model: ${conversation.model}*\n`;
+  md += `*Dibuat: ${conversation.createdAt.toLocaleString('id-ID')}*\n\n`;
+  md += `---\n\n`;
+
+  const convMessages = conversation.messages;
+  for (const msg of convMessages) {
+    const role = msg.role === 'user' ? '👤 Kamu' : msg.role === 'system' ? 'ℹ️ Sistem' : '🤖 Lyra';
+    md += `### ${role}\n\n`;
+    if (msg.content) {
+      md += `${msg.content}\n\n`;
+    }
+    if (msg.model) {
+      md += `*Model: ${msg.model}*\n\n`;
+    }
+  }
+
+  md += `---\n*Diekspor dari Lyra v1.0.0*`;
+  return md;
+}
+
+// Copy all messages in a conversation to clipboard
+export function copyConversationToClipboard(conversation: Conversation): string {
+  let text = `Percakapan: ${conversation.title}\n`;
+  text += `${'='.repeat(40)}\n\n`;
+
+  const convMessages = conversation.messages;
+  for (const msg of convMessages) {
+    const role = msg.role === 'user' ? 'Kamu' : msg.role === 'system' ? 'Sistem' : 'Lyra';
+    text += `[${role}]\n${msg.content}\n\n`;
+  }
+
+  return text;
+}
+
 // Delete project
 export async function deleteProject(id: string) {
-  if (!supabase) return false;
 
   const { error } = await supabase
     .from('projects')

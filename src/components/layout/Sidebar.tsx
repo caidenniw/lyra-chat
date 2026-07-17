@@ -1,4 +1,4 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon } from "lucide-react";
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon, Download, Pin, PinOff } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@supabase/supabase-js";
@@ -24,9 +24,12 @@ interface SidebarProps {
   onNewChat: () => void;
   onCreateProject: (name: string) => void;
   onMoveToProject: (conversationId: string, projectId: string | null) => void;
+  onExportChat?: (id: string) => void;
+  pinnedConversations?: Set<string>;
+  onTogglePin?: (id: string) => void;
 }
 
-export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject }: SidebarProps) {
+export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject, onExportChat, pinnedConversations, onTogglePin }: SidebarProps) {
   const [search, setSearch] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [showNewProject, setShowNewProject] = useState(false);
@@ -76,8 +79,16 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
 
   const filteredConversations = search ? conversations.filter((c) => c.title.toLowerCase().includes(search.toLowerCase())) : conversations;
 
-  const ungrouped = filteredConversations.filter((c) => !c.projectId);
-  const groupedByProject = (projectId: string) => filteredConversations.filter((c) => c.projectId === projectId);
+  // Sort: pinned conversations first
+  const sortFn = (a: { id: string }, b: { id: string }) => {
+    const aPinned = pinnedConversations?.has(a.id) ? 0 : 1;
+    const bPinned = pinnedConversations?.has(b.id) ? 0 : 1;
+    return aPinned - bPinned;
+  };
+  const sortedConversations = [...filteredConversations].sort(sortFn);
+
+  const ungrouped = sortedConversations.filter((c) => !c.projectId);
+  const groupedByProject = (projectId: string) => sortedConversations.filter((c) => c.projectId === projectId);
 
   const toggleProject = (id: string) => {
     setExpandedProjects((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -169,6 +180,7 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
             }`}
           >
             <span className="flex-1 truncate">{conv.title}</span>
+            {pinnedConversations?.has(conv.id) && <Pin size={10} className="text-primary/60 shrink-0" />}
             {/* Three-dot menu button — always visible on mobile, hover on desktop */}
             <button
               ref={(el) => {
@@ -201,6 +213,18 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
                 <FolderInput size={14} />
                 Pindah ke Proyek
               </button>
+              {onExportChat && (
+                <button onClick={() => { onExportChat(conv.id); setActiveMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
+                  <Download size={14} />
+                  Export .md
+                </button>
+              )}
+              {onTogglePin && (
+                <button onClick={() => { onTogglePin(conv.id); setActiveMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
+                  {pinnedConversations?.has(conv.id) ? <PinOff size={14} className="text-primary" /> : <Pin size={14} />}
+                  {pinnedConversations?.has(conv.id) ? 'Lepas pin' : 'Pin'}
+                </button>
+              )}
               <div className="mx-2 my-1 border-t border-border" />
               <button
                 onClick={() => {
