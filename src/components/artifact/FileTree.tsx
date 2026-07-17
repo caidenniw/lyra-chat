@@ -102,8 +102,8 @@ function FolderItem({ node, depth, activeFilePath, onFileSelect, defaultOpen }: 
         onClick={() => onFileSelect(node.file!)}
         className={`w-full flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors text-left ${
           isActive
-            ? 'bg-primary/15 text-primary font-medium'
-            : 'text-text-dim hover:text-text hover:bg-bg-alt'
+            ? 'bg-[#cba6f7]/20 text-[#cdd6f4] font-medium'
+            : 'text-[#6c7086] hover:text-[#cdd6f4] hover:bg-[#313244]/50'
         }`}
         style={{ paddingLeft: `${12 + depth * 14}px` }}
         title={node.path}
@@ -124,7 +124,7 @@ function FolderItem({ node, depth, activeFilePath, onFileSelect, defaultOpen }: 
     <div>
       <button
         onClick={toggle}
-        className="w-full flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors text-text-dim hover:text-text hover:bg-bg-alt text-left"
+        className="w-full flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors text-[#6c7086] hover:text-[#cdd6f4] hover:bg-[#313244]/50 text-left"
         style={{ paddingLeft: `${8 + depth * 14}px` }}
       >
         {isOpen ? <ChevronDown size={12} className="shrink-0" /> : <ChevronRight size={12} className="shrink-0" />}
@@ -162,7 +162,7 @@ export function FileTree({ files, activeFile, onFileSelect }: FileTreeProps) {
 
   return (
     <div className="w-52 shrink-0 bg-[#252526] border-r border-[#313131] overflow-y-auto overflow-x-hidden">
-      <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-dim border-b border-[#313131]">
+      <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6c7086] border-b border-[#313131]">
         File Explorer
       </div>
       <div className="py-1 space-y-0.5">
