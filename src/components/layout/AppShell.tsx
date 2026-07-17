@@ -10,7 +10,7 @@ import { EmptyState } from '../chat/EmptyState';
 import { ArtifactPreview } from '../artifact/ArtifactPreview';
 import { useChat } from '../../hooks/useChat';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
-import { PrivacyPolicy } from './PrivacyPolicy';
+import { PrivacyPolicy } from '../PrivacyPolicy';
 import {
   getConversations,
   getMessages,
