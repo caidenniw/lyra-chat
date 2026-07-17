@@ -1,8 +1,11 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
-import { X, Monitor, Tablet, Smartphone, Code2, Copy, Check, RotateCcw, FileArchive } from 'lucide-react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { X, Monitor, Tablet, Smartphone, Code2, Copy, Check, RotateCcw, FileArchive, Maximize2, Minimize2 } from 'lucide-react';
 import JSZip from 'jszip';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/atom-one-dark.css';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import { buildPreviewHtml } from '../../lib/artifact/extractor';
+import { FileTree } from './FileTree';
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -20,8 +23,11 @@ interface ArtifactPreviewProps {
 export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
   const [device, setDevice] = useState<DeviceMode>('desktop');
   const [showCode, setShowCode] = useState(false);
+  const [fullCode, setFullCode] = useState(false);
   const [activeFile, setActiveFile] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(50);
+  const isDragging = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const files = artifact.files || [{ path: 'index.html', content: artifact.code }];
@@ -73,40 +79,90 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     return code;
   }, [files]);
 
-  // Encode HTML to data: URL — iframe gets a DIFFERENT origin from parent
-  // This prevents ALL navigation to the parent app (Lyra)
+  // Encode HTML to data: URL
   const dataUrl = useMemo(() => {
     return 'data:text/html;charset=utf-8,' + encodeURIComponent(safeCode);
   }, [safeCode]);
 
+  // Highlight.js: auto-detect language from current file
+  const highlightedCode = useMemo(() => {
+    const code = files[activeFile]?.content || artifact.code || '';
+    if (!code.trim()) return '';
+    try {
+      const langMap: Record<string, string> = {
+        html: 'html', htm: 'html',
+        css: 'css', scss: 'css', less: 'css',
+        js: 'javascript', mjs: 'javascript',
+        ts: 'typescript', tsx: 'typescript',
+        jsx: 'javascript',
+        json: 'json',
+        svg: 'xml', xml: 'xml',
+        md: 'markdown',
+        txt: 'plaintext',
+      };
+      const ext = files[activeFile]?.path?.split('.').pop()?.toLowerCase() || '';
+      const lang = langMap[ext] || '';
+      if (lang) {
+        const result = hljs.highlight(code, { language: lang });
+        if (result && result.value) return result.value;
+      }
+      const autoResult = hljs.highlightAuto(code);
+      return autoResult.value;
+    } catch {
+      return code
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+  }, [files, activeFile, artifact.code]);
+
+  useEffect(() => {
+    document.querySelectorAll('.hljs code').forEach(block => {
+      hljs.highlightElement(block as HTMLElement);
+    });
+  }, [activeFile]);
+
   const handleRefresh = useCallback(() => {
     const iframe = iframeRef.current;
     if (iframe) {
-      // Force reload by toggling src
       iframe.src = 'about:blank';
       requestAnimationFrame(() => { iframe.src = dataUrl; });
     }
   }, [dataUrl]);
 
-  const getFileIcon = (path: string) => {
-    if (path.endsWith('.css')) return '🎨';
-    if (path.endsWith('.js')) return '⚡';
-    if (path.endsWith('.html')) return '📄';
-    return '📝';
-  };
+  // Current file name for display
+  const currentFileName = files[activeFile]?.path?.split('/').pop() || 'index.html';
+
+  // Check if file is currently copied
+  const isCurrentlySelected = (idx: number) => activeFile === idx;
 
   return (
     <div className="flex flex-col h-full bg-bg border-l border-border">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface flex-shrink-0">
         <div className="flex items-center gap-1">
-          <DeviceButton icon={Monitor} mode="desktop" active={device} onClick={setDevice} label="Desktop" />
-          <DeviceButton icon={Tablet} mode="tablet" active={device} onClick={setDevice} label="Tablet" />
-          <DeviceButton icon={Smartphone} mode="mobile" active={device} onClick={setDevice} label="Mobile" />
+          {showCode && (
+            <button
+              onClick={() => setFullCode(!fullCode)}
+              title={fullCode ? 'Show preview' : 'Full code mode'}
+              className={`p-1.5 rounded-lg transition-colors ${
+                fullCode ? 'bg-primary/10 text-primary' : 'text-text-dim hover:text-text hover:bg-bg-alt'
+              }`}
+            >
+              {fullCode ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+            </button>
+          )}
+          {!fullCode && (
+            <>
+              <DeviceButton icon={Monitor} mode="desktop" active={device} onClick={setDevice} label="Desktop" />
+              <DeviceButton icon={Tablet} mode="tablet" active={device} onClick={setDevice} label="Tablet" />
+              <DeviceButton icon={Smartphone} mode="mobile" active={device} onClick={setDevice} label="Mobile" />
+            </>
+          )}
           <div className="w-px h-5 bg-border mx-1" />
           <button
             onClick={() => setShowCode(!showCode)}
-            title="Source code"
+            title={showCode ? 'Preview' : 'Source code'}
             className={`p-1.5 rounded-lg transition-colors ${
               showCode ? 'bg-primary text-white' : 'text-text-dim hover:text-text hover:bg-bg-alt'
             }`}
@@ -117,7 +173,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
         <div className="flex items-center gap-0.5">
           <span className="text-[11px] text-text-dim mr-2 hidden sm:block truncate max-w-[140px]">
-            {artifact.title || 'Preview'}
+            {showCode ? currentFileName : (artifact.title || 'Preview')}
           </span>
           <button onClick={handleRefresh} title="Refresh" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors">
             <RotateCcw size={13} />
@@ -134,41 +190,107 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden bg-[#e8e5e0] flex flex-col">
-        {showCode ? (
-          /* Code View with tabs */
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {files.length > 1 && (
-              <div className="flex items-center gap-0 px-1 pt-2 pb-0 overflow-x-auto flex-shrink-0">
+      {/* Content: Split View (Code + Preview) or Full Preview */}
+      {showCode && fullCode ? (
+        /* Full Code Mode (like before — file tree + editor, no preview) */
+        <div className="flex-1 flex overflow-hidden">
+          <FileTree
+            files={files}
+            activeFile={activeFile}
+            onFileSelect={setActiveFile}
+          />
+          <div className="flex-1 flex flex-col overflow-hidden bg-[#1e1e2e]">
+            <div className="flex items-center gap-0 px-1 pt-0 overflow-x-auto flex-shrink-0 bg-[#1e1e2e] border-b border-[#313244]">
+              {files.map((file, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveFile(idx)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
+                    isCurrentlySelected(idx)
+                      ? 'text-[#cdd6f4] border-[#cba6f7] bg-[#313244]/50'
+                      : 'text-[#6c7086] border-transparent hover:text-[#a6adc8] hover:bg-[#313244]/30'
+                  }`}
+                >
+                  <FileIcon path={file.path} />
+                  <span>{file.path.split('/').pop()}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <pre className="text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words hljs" style={{ background: 'transparent' }}>
+                <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedCode || '&nbsp;' }} />
+              </pre>
+            </div>
+          </div>
+        </div>
+      ) : showCode ? (
+        /* Split Mode: Code on left + Preview on right */
+        <div className="flex-1 flex overflow-hidden">
+          {/* Code side */}
+          <div className="flex overflow-hidden" style={{ width: `${splitRatio}%` }}>
+            <FileTree
+              files={files}
+              activeFile={activeFile}
+              onFileSelect={setActiveFile}
+            />
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#1e1e2e]">
+              <div className="flex items-center gap-0 px-1 pt-0 overflow-x-auto flex-shrink-0 bg-[#1e1e2e] border-b border-[#313244]">
                 {files.map((file, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveFile(idx)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap ${
-                      activeFile === idx
-                        ? 'bg-[#1e1e2e] text-[#cdd6f4] border border-[#313244] border-b-transparent -mb-px'
-                        : 'bg-[#313244] text-[#6c7086] hover:text-[#a6adc8] border border-transparent'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
+                      isCurrentlySelected(idx)
+                        ? 'text-[#cdd6f4] border-[#cba6f7] bg-[#313244]/50'
+                        : 'text-[#6c7086] border-transparent hover:text-[#a6adc8] hover:bg-[#313244]/30'
                     }`}
                   >
-                    <span>{getFileIcon(file.path)}</span>
+                    <FileIcon path={file.path} />
                     <span>{file.path.split('/').pop()}</span>
                   </button>
                 ))}
               </div>
-            )}
-            <div className="flex-1 overflow-auto rounded-b-xl bg-[#1e1e2e] p-4">
-              <pre className="text-[13px] leading-relaxed text-[#cdd6f4] font-mono whitespace-pre-wrap break-words">
-                <code>{files[activeFile]?.content || ''}</code>
-              </pre>
+              <div className="flex-1 overflow-auto p-4">
+                <pre className="text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words hljs" style={{ background: 'transparent' }}>
+                  <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedCode || '&nbsp;' }} />
+                </pre>
+              </div>
             </div>
           </div>
-        ) : (
-          /* Preview iframe — data: URL for origin isolation */
-          <div className="flex-1 flex items-start justify-center p-3 overflow-hidden">
+
+          {/* Resize handle */}
+          <div
+            className="w-[4px] bg-[#313131] hover:bg-[#cba6f7] hover:w-[4px] cursor-col-resize shrink-0 relative transition-colors group z-10"
+            onMouseDown={(e) => {
+              isDragging.current = true;
+              const startX = e.clientX;
+              const startRatio = splitRatio;
+              const container = e.currentTarget.parentElement!;
+              const containerWidth = container.offsetWidth;
+
+              const handleMouseMove = (me: MouseEvent) => {
+                if (!isDragging.current) return;
+                const dx = me.clientX - startX;
+                const newRatio = Math.min(80, Math.max(20, startRatio + (dx / containerWidth) * 100));
+                setSplitRatio(newRatio);
+              };
+              const handleMouseUp = () => {
+                isDragging.current = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+          >
+            <div className="absolute inset-y-0 left-[-2px] right-[-2px] group-hover:bg-[#cba6f7]/20 transition-colors" />
+          </div>
+
+          {/* Preview side */}
+          <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
             <div
               className="h-full bg-white rounded-xl shadow-medium overflow-hidden transition-all duration-300 ease-out"
-              style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
+              style={{ width: '100%', maxWidth: DEVICE_WIDTHS[device] }}
             >
               <iframe
                 ref={iframeRef}
@@ -180,10 +302,45 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
               />
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Preview only (full screen) */
+        <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0]">
+          <div
+            className="h-full bg-white rounded-xl shadow-medium overflow-hidden transition-all duration-300 ease-out"
+            style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
+          >
+            <iframe
+              ref={iframeRef}
+              src={dataUrl}
+              title={artifact.title || 'Website Preview'}
+              sandbox="allow-scripts"
+              className="w-full h-full border-0"
+              style={{ minHeight: '100%' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function FileIcon({ path }: { path: string }) {
+  const name = path.split('/').pop()?.toLowerCase() || '';
+  const ext = name.split('.').pop();
+  
+  if (name === 'index.html') return <span className="text-[#e37933] text-[11px]">&#x1F4C4;</span>;
+  if (name === 'style.css') return <span className="text-[#519aba] text-[11px]">&#x1F3A8;</span>;
+  if (name === 'script.js') return <span className="text-[#cbcb41] text-[11px]">&#x26A1;</span>;
+  
+  switch (ext) {
+    case 'html': case 'htm': return <span className="text-[#e37933] text-[11px]">&#x1F4C4;</span>;
+    case 'css': case 'scss': return <span className="text-[#519aba] text-[11px]">&#x1F3A8;</span>;
+    case 'js': case 'jsx': case 'mjs': return <span className="text-[#cbcb41] text-[11px]">&#x26A1;</span>;
+    case 'ts': case 'tsx': return <span className="text-[#3178c6] text-[11px]">TS</span>;
+    case 'json': return <span className="text-[#cbcb41] text-[11px]">{'{ }'}</span>;
+    default: return <span className="text-text-dim text-[11px]">&#x1F4C4;</span>;
+  }
 }
 
 function DeviceButton({
