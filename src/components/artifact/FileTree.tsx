@@ -108,7 +108,7 @@ function FolderItem({ node, depth, activeFilePath, onFileSelect, defaultOpen }: 
         style={{ paddingLeft: `${12 + depth * 14}px` }}
         title={node.path}
       >
-        {getFileIcon(node.path, false)}
+        {getFileIcon(node.path)}
         <span className="truncate">{node.name}</span>
       </button>
     );
