@@ -166,8 +166,8 @@ app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'landing', 'index.html'));
 });
 
-// SPA fallback — only for non-landing, non-file routes
-app.get('/chat/*', (req, res) => {
+// SPA fallback — use Express 5 named wildcard (*splat)
+app.get('/chat/*splat', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
