@@ -166,7 +166,16 @@ app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'landing', 'index.html'));
 });
 
-// SPA fallback — use Express 5 named wildcard (*splat)
+// Privacy policy — static page linked from landing footer
+app.get('/privacy', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'landing', 'privacy.html'));
+});
+
+// SPA — /chat and any subpath serve the app (Express 5 *splat needs ≥1 segment,
+// so bare /chat must be its own route)
+app.get('/chat', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
 app.get('/chat/*splat', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
