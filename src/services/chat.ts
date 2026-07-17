@@ -326,7 +326,7 @@ export function exportConversationAsMarkdown(conversation: Conversation): string
     }
   }
 
-  md += `---\n*Diekspor dari Lyra v1.0.0*`;
+  md += `---\n*Diekspor dari Lyra v1.1.0*`;
   return md;
 }
 
