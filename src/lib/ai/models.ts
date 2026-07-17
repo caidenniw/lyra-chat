@@ -12,16 +12,16 @@ export interface ModelInfo {
 
 export const MODELS: ModelInfo[] = [
   {
-    id: 'hy3-free',
-    name: 'Hydra',
-    desc: 'Reasoning kuat, responsif',
+    id: 'deepseek-v4-flash-free',
+    name: 'Nova',
+    desc: 'Cepat & ringan untuk tugas sehari-hari',
     reasoning: true,
     multimodal: false,
   },
   {
-    id: 'deepseek-v4-flash-free',
-    name: 'Nova',
-    desc: 'Cepat & ringan untuk tugas sehari-hari',
+    id: 'hy3-free',
+    name: 'Hydra',
+    desc: 'Reasoning kuat, responsif',
     reasoning: true,
     multimodal: false,
   },
