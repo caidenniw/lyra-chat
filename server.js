@@ -153,6 +153,8 @@ app.post('/api/chat', (req, res) => {
 
 // Serve static frontend
 app.use(express.static(join(__dirname, 'dist')));
+// Serve landing page from public directory
+app.use(express.static(join(__dirname, 'public')));
 
 // SPA fallback
 app.get('/{*splat}', (req, res) => {

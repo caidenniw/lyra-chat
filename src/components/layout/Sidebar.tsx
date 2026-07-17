@@ -443,7 +443,7 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
           </a>
           {onShowPrivacy && (
             <button onClick={onShowPrivacy} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] text-text-dim hover:text-text hover:bg-bg-alt transition-colors">
-              🔒 Kebijakan Privasi
+              Kebijakan Privasi
             </button>
           )}
         </div>
