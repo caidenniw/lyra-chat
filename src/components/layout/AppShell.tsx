@@ -10,6 +10,7 @@ import { EmptyState } from '../chat/EmptyState';
 import { ArtifactPreview } from '../artifact/ArtifactPreview';
 import { useChat } from '../../hooks/useChat';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
+import { PrivacyPolicy } from './PrivacyPolicy';
 import {
   getConversations,
   getMessages,
@@ -66,6 +67,7 @@ export function AppShell() {
   const [activeArtifact, setActiveArtifact] = useState<ArtifactBlock | null>(null);
   const [panelWidth, setPanelWidth] = useState(50); // percentage for preview panel
   const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(new Set());
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const isDraggingRef = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -363,6 +365,7 @@ export function AppShell() {
     <div className="h-[100dvh] flex overflow-hidden bg-bg">
       {/* Auth Modal */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {privacyOpen && <PrivacyPolicy onClose={() => setPrivacyOpen(false)} />}
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
       {/* Desktop sidebar — spring animated width */}
       <motion.div
@@ -387,6 +390,7 @@ export function AppShell() {
             onCreateProject={handleCreateProject}
             onMoveToProject={handleMoveToProject}
             onExportChat={handleExportChat}
+            onShowPrivacy={() => setPrivacyOpen(true)}
             pinnedConversations={pinnedConversations}
             onTogglePin={handleTogglePin}
           />
@@ -428,6 +432,7 @@ export function AppShell() {
                 onCreateProject={handleCreateProject}
                 onMoveToProject={handleMoveToProject}
                 onExportChat={handleExportChat}
+                onShowPrivacy={() => setPrivacyOpen(true)}
                 pinnedConversations={pinnedConversations}
                 onTogglePin={handleTogglePin}
               />
