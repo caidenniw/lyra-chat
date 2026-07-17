@@ -154,10 +154,15 @@ app.post('/api/chat', (req, res) => {
 // Serve static frontend
 app.use(express.static(join(__dirname, 'dist')));
 // Serve landing page from public directory
-app.use(express.static(join(__dirname, 'public')));
+app.use('/landing', express.static(join(__dirname, 'public/landing')));
 
-// SPA fallback
-app.get('/{*splat}', (req, res) => {
+// Root route → landing page (like openai.com / claude.ai)
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'landing', 'index.html'));
+});
+
+// SPA fallback — only for non-landing, non-file routes
+app.get('/chat/*', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
