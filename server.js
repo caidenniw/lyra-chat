@@ -156,8 +156,8 @@ app.post('/api/chat', (req, res) => {
   }
 });
 
-// Serve static frontend
-app.use(express.static(join(__dirname, 'dist')));
+// Serve static frontend — disable index so root route can serve landing page
+app.use(express.static(join(__dirname, 'dist'), { index: false }));
 // Serve landing page from public directory
 app.use('/landing', express.static(join(__dirname, 'public/landing')));
 
