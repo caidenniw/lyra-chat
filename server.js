@@ -45,6 +45,11 @@ function checkRateLimit(ip) {
 // Parse JSON body
 app.use(express.json({ limit: '1mb' }));
 
+// Health check — Railway needs a quick 200 on /health or similar
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // API endpoint
 app.post('/api/chat', (req, res) => {
   const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
