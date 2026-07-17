@@ -472,7 +472,7 @@ export function AppShell() {
               </div>
             </div>
           ) : hasMessages ? (
-            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} onCopyAll={handleCopyAllChat} copiedAll={copiedAll} />
+            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} onCopyAll={handleCopyAllChat} copiedAll={copiedAll} userEmail={user?.email} />
           ) : (
             <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
           )}

@@ -278,15 +278,15 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
   };
 
   return (
-    <div className="relative bg-bg md:bg-transparent pb-5 md:pb-8 border-t md:border-t-0 border-border/30 md:border-0">
+    <div className="relative flex-shrink-0 bg-bg md:bg-transparent pb-5 md:pb-8 border-t md:border-t-0 border-border/30 md:border-0 shadow-[0_-4px_12px_-4px_rgba(44,42,37,0.06)] md:shadow-none">
       <div className="max-w-3xl mx-auto px-3 md:px-8 pt-2 md:pt-2 pb-1 md:pb-2">
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="flex items-center gap-3 mb-2 px-3 py-2 rounded-xl bg-primary-subtle border border-primary/10 animate-message-in">
             <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="w-2 h-2 rounded-full bg-primary typing-pulse" style={{ animationDelay: "0ms" }} />
+              <span className="w-2 h-2 rounded-full bg-primary typing-pulse" style={{ animationDelay: "200ms" }} />
+              <span className="w-2 h-2 rounded-full bg-primary typing-pulse" style={{ animationDelay: "400ms" }} />
             </div>
             <span className="text-xs font-medium text-primary">
               {isReasoning ? 'Lyra sedang berpikir...' : 'Lyra sedang menjawab...'}
@@ -414,7 +414,9 @@ export function InputArea({ onSend, isStreaming = false, isReasoning = false, se
               >
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
                   <h3 className="text-base font-semibold text-text">Pilih model</h3>
-                  <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text text-lg leading-none btn-press">✕</button>
+                  <button onClick={() => setModelPickerOpen(false)} className="text-text-dim hover:text-text btn-press">
+                    <X size={16} />
+                  </button>
               </div>
               <div className="p-3 space-y-1.5">
                 {MODELS.map((model) => (

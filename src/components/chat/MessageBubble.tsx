@@ -1,10 +1,11 @@
-import { Bot, User, Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, RotateCcw, Loader2 } from 'lucide-react';
+import { Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, RotateCcw, Loader2 } from 'lucide-react';
 import { useState, memo, useMemo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ArtifactBanner } from '../artifact/ArtifactBanner';
 import { extractArtifacts, hasArtifact, hasPartialArtifact, stripArtifacts } from '../../lib/artifact/extractor';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import type { Message } from '../layout/AppShell';
+import logoIcon from '../../assets/gambar2.png';
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,15 +13,21 @@ interface MessageBubbleProps {
   onRetry?: () => void;
   onContinue?: () => void;
   onShowArtifact?: (artifact: ArtifactBlock) => void;
+  userEmail?: string | null;
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry, onContinue, onShowArtifact }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry, onContinue, onShowArtifact, userEmail }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const isEmpty = !message.content && !message.reasoningContent && isStreaming;
   const hasReasoning = !!message.reasoningContent;
+
+  // Derive user initial from email for avatar
+  const userInitial = isUser
+    ? (userEmail?.split('@')[0]?.charAt(0).toUpperCase() || 'K')
+    : '';
 
   // Extract artifacts from assistant messages (only when not streaming)
   const artifacts = useMemo(() => {
@@ -94,9 +101,8 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
     <div className={`flex gap-2 md:gap-3 animate-message-in ${isUser ? 'justify-end' : 'justify-start'}`}>
       {/* Avatar - assistant */}
       {!isUser && (
-        <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-soft">
-          <Bot size={14} className="text-white md:hidden" />
-          <Bot size={16} className="text-white hidden md:block" />
+        <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary flex items-center justify-center shadow-soft overflow-hidden">
+          <img src={logoIcon} alt="Lyra" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
         </div>
       )}
 
@@ -272,8 +278,7 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
       {/* Avatar - user */}
       {isUser && (
         <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft">
-          <User size={14} className="text-white md:hidden" />
-          <User size={16} className="text-white hidden md:block" />
+          <span className="text-[10px] md:text-xs font-bold text-white uppercase">{userInitial}</span>
         </div>
       )}
     </div>

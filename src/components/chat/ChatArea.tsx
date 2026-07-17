@@ -13,9 +13,10 @@ interface ChatAreaProps {
   onShowArtifact?: (artifact: ArtifactBlock) => void;
   onCopyAll?: () => void;
   copiedAll?: boolean;
+  userEmail?: string | null;
 }
 
-export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, onShowArtifact, onCopyAll, copiedAll }: ChatAreaProps) {
+export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, onShowArtifact, onCopyAll, copiedAll, userEmail }: ChatAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -128,6 +129,7 @@ export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, on
             onRetry={msg.isError ? onRetry : undefined}
             onContinue={hasPartialArtifact(msg.content) ? onContinue : undefined}
             onShowArtifact={onShowArtifact}
+            userEmail={userEmail}
           />
         ))}
         <div ref={bottomRef} />

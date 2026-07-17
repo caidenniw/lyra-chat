@@ -233,22 +233,15 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
       onModelChange?.(activeModel);
     }
 
+    const now = Date.now();
+
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       content,
       files,
       model: activeModel,
-      timestamp: new Date(),
-      conversationId,
-    };
-
-    const assistantMsg: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '',
-      model: activeModel,
-      timestamp: new Date(),
+      timestamp: new Date(now),
       conversationId,
     };
 
@@ -257,9 +250,18 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
       role: 'system',
       content: `✨ Model beralih ke ${getModelById(activeModel)?.name || activeModel} untuk mendukung gambar.`,
       model: activeModel,
-      timestamp: new Date(),
+      timestamp: new Date(now + 1),
       conversationId,
     } : null;
+
+    const assistantMsg: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      model: activeModel,
+      timestamp: new Date(now + (systemMsg ? 2 : 1)),
+      conversationId,
+    };
 
     // Store refs for callbacks
     currentAssistantContentRef.current = '';

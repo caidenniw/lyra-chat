@@ -79,7 +79,15 @@ export async function getMessages(userId: string): Promise<Message[]> {
     return [];
   }
 
-  return (data || []).map((msg: DbMessage) => ({
+  // Sort by created_at, then by role (user < assistant < system) for stable ordering
+  const roleOrder: Record<string, number> = { user: 0, assistant: 1, system: 2 };
+  const sorted = [...(data || [])].sort((a: DbMessage, b: DbMessage) => {
+    const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+  });
+
+  return sorted.map((msg: DbMessage) => ({
     id: msg.id,
     role: msg.role,
     content: msg.content,

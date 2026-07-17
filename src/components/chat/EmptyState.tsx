@@ -1,4 +1,4 @@
-import { Clock, Lightbulb, CheckSquare, Languages } from 'lucide-react';
+import { Article, Sparkle, Code, Translate } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import type { User } from '@supabase/supabase-js';
 import logoIcon from '../../assets/gambar2.png';
@@ -10,64 +10,55 @@ interface EmptyStateProps {
 
 const SAVED_PROMPTS = [
   {
-    icon: Clock,
-    title: 'Ringkas Meeting Notes',
-    description: 'Ubah catatan meeting jadi 5 poin penting untuk tim.',
-    prompt: 'Tolong ringkas catatan meeting ini menjadi 5 poin penting yang bisa dishare ke tim.',
-    color: 'bg-blue-50 text-blue-500',
+    icon: Article,
+    title: 'Ringkas Materi',
+    description: 'Ubah catatan panjang atau PDF jadi poin-poin esensial yang siap dipelajari.',
+    prompt: 'Ringkas catatan/materi berikut jadi poin-poin penting yang gampang dipahami dan dipelajari ulang.',
   },
   {
-    icon: Lightbulb,
-    title: 'Brainstorming Ide',
-    description: 'Generate 3 ide kreatif untuk proyek baru.',
-    prompt: 'Tolong bantu brainstorm 3 ide kreatif untuk proyek web app yang inovatif.',
-    color: 'bg-amber-50 text-amber-500',
+    icon: Sparkle,
+    title: 'Ide Proyek',
+    description: 'Dapatkan ide-ide segar dan actionable untuk tugas, proyek, atau konten kreator.',
+    prompt: 'Bantu brainstorming 5 ide kreatif dan actionable untuk proyek atau tugas berikut.',
   },
   {
-    icon: CheckSquare,
-    title: 'Review Kode',
-    description: 'Analisis kode dan temukan potensi bug.',
-    prompt: 'Tolong review kode ini, temukan potensi bug dan berikan saran perbaikan.',
-    color: 'bg-green-50 text-green-500',
+    icon: Code,
+    title: 'Bantu Coding',
+    description: 'Jelaskan kode, identifikasi error, atau bantu debug program kamu.',
+    prompt: 'Jelaskan kode berikut langkah demi langkah, dan kalau ada bug tolong tunjukkan di mana.',
   },
   {
-    icon: Languages,
-    title: 'Terjemahkan',
-    description: 'Terjemahkan teks ke bahasa lain.',
-    prompt: 'Tolong terjemahkan teks berikut ke bahasa Indonesia dengan natural dan akurat.',
-    color: 'bg-purple-50 text-purple-500',
+    icon: Translate,
+    title: 'Translate Natural',
+    description: 'Terjemahkan artikel, jurnal, atau teks ke bahasa Indonesia yang natural.',
+    prompt: 'Terjemahkan teks berikut ke bahasa Indonesia dengan gaya yang natural, mudah dibaca, dan kontekstual.',
   },
 ];
 
 export function EmptyState({ onSend, user }: EmptyStateProps) {
   return (
-    <div className="flex-1 flex items-center justify-center px-3 md:px-4 py-4 overflow-y-auto min-h-0">
-      <div className="w-full max-w-2xl -mt-8 md:mt-0">
-        {/* Greeting — compact on mobile */}
-        <div className="text-center mb-4 md:mb-8">
-          <div className="w-10 h-10 md:w-16 md:h-16 mx-auto mb-2 md:mb-5 animate-message-in">
+    <div className="flex-1 flex flex-col items-center justify-start md:justify-center px-4 pt-12 pb-24 md:py-16 overflow-y-auto min-h-0">
+      <div className="w-full max-w-md md:max-w-2xl">
+        {/* Greeting — bold & spacious */}
+        <div className="text-center mb-6 md:mb-10">
+          <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 animate-message-in">
             <img src={logoIcon} alt="Lyra" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-text mb-0.5 md:mb-2 animate-message-in" style={{ animationDelay: '0.1s' }}>
+          <h1 className="text-3xl md:text-4xl font-bold text-text tracking-tight animate-message-in" style={{ animationDelay: '0.1s' }}>
             {(() => {
               const h = new Date().getHours();
               const time = h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat malam';
               return user ? `${time}, ${user.email?.split('@')[0]}` : time;
             })()}
           </h1>
-          <p className="text-text-muted text-[13px] md:text-base animate-message-in" style={{ animationDelay: '0.15s' }}>
+          <p className="text-base md:text-lg text-text-muted mt-2 md:mt-3 animate-message-in" style={{ animationDelay: '0.15s' }}>
             Ada yang bisa saya bantu hari ini?
           </p>
         </div>
 
-        {/* Saved Prompts header — hidden on very small screens */}
-        <div className="hidden md:flex items-center mb-3">
-          <span className="text-sm font-medium text-text-muted">Prompt tersimpan</span>
-        </div>
-
-        {/* Cards — 2x2 grid on mobile & desktop */}
+        {/* Prompt Cards — single column on mobile, 2 cols on desktop */}
         <motion.div
-          className="grid grid-cols-2 gap-2 md:gap-3"
+          className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"
           initial="hidden"
           animate="visible"
           variants={{
@@ -82,16 +73,19 @@ export function EmptyState({ onSend, user }: EmptyStateProps) {
                 hidden: { opacity: 0, y: 12 },
                 visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
               }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onSend(item.prompt)}
-              className="card-hover flex items-start gap-2.5 p-3 md:p-4 rounded-xl md:rounded-2xl bg-surface border border-border
-                hover:border-primary/20 text-left group"
+              className="flex items-start gap-3 p-4 md:p-5 rounded-2xl
+                text-left group border border-border/40
+                hover:bg-surface hover:border-border/60
+                transition-colors duration-200"
             >
-              <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl ${item.color} flex-shrink-0 flex items-center justify-center`}>
-                <item.icon size={16} />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full border border-border/60 flex-shrink-0 flex items-center justify-center bg-bg-alt/30">
+                <item.icon size={18} weight="light" className="text-text-muted" />
               </div>
               <div className="min-w-0">
-                <div className="text-[13px] md:text-sm font-medium text-text leading-tight">{item.title}</div>
-                <div className="text-[12px] md:text-sm text-text-muted leading-tight mt-0.5 line-clamp-2">{item.description}</div>
+                <div className="text-sm md:text-base font-medium text-text tracking-tight">{item.title}</div>
+                <div className="text-xs md:text-sm text-text-dim mt-1 leading-relaxed">{item.description}</div>
               </div>
             </motion.button>
           ))}

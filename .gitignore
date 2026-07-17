@@ -7,3 +7,10 @@ dist
 .vite
 
 .vercel
+
+# AI agent config (local)
+.agents/
+.claude/
+.playwright-mcp/
+skills-lock.json
+*.png
