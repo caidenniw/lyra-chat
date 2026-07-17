@@ -17,7 +17,7 @@ interface FileTreeProps {
   onFileSelect: (index: number) => void;
 }
 
-function getFileIcon(path: string, isOpen: boolean) {
+function getFileIcon(path: string) {
   const fileName = path.split('/').pop()?.toLowerCase() || '';
   if (fileName === 'index.html') return <FileCode size={15} className="text-[#e37933]" />;
   if (fileName === 'style.css') return <FileCode size={15} className="text-[#519aba]" />;
@@ -133,7 +133,7 @@ function FolderItem({ node, depth, activeFilePath, onFileSelect, defaultOpen }: 
       </button>
       {isOpen && (
         <div>
-          {sortedChildren.map((child, i) => (
+          {sortedChildren.map((child) => (
             <FolderItem
               key={child.path}
               node={child}
