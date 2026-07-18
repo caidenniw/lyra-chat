@@ -1,4 +1,4 @@
-import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon, Download, Pin, PinOff } from "lucide-react";
+import { Search, Plus, FolderOpen, Clock, Trash2, Edit3, FolderInput, ChevronRight, ChevronDown, PanelLeftClose, LogOut, MoreVertical, Check, X, User as UserIcon, Download, Pin, PinOff, Info } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@supabase/supabase-js";
@@ -47,6 +47,9 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const profileButtonRef = useRef<HTMLDivElement | null>(null);
 
   const newProjectRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -83,6 +86,22 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
       return () => document.removeEventListener("click", handleClick);
     }
   }, [activeMenu, moveMenu]);
+
+  // Close profile menu on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const isOutsideButton = !profileButtonRef.current || !profileButtonRef.current.contains(target);
+      const isOutsideMenu = !profileMenuRef.current || !profileMenuRef.current.contains(target);
+      if (isOutsideButton && isOutsideMenu) {
+        setProfileMenuOpen(false);
+      }
+    };
+    if (profileMenuOpen) {
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
+    }
+  }, [profileMenuOpen]);
 
   // Keyboard navigation: Escape, ArrowUp, ArrowDown, Home, End
   useEffect(() => {
@@ -555,26 +574,55 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
             <span className="text-[11px] text-text-dim group-hover:text-text-muted transition-colors">Lyra v1.1.0</span>
             <span className="text-[10px] text-text-dim/50 ml-auto">by Caiden</span>
           </a>
-          {onShowPrivacy && (
-            <button onClick={onShowPrivacy} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] text-text-dim hover:text-text hover:bg-bg-alt transition-colors">
-              Kebijakan Privasi
-            </button>
-          )}
         </div>
 
         {/* User Profile */}
         <div className="p-4 border-t border-border">
           {user ? (
-            <div className="flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft flex-shrink-0">
-                <span className="text-white font-bold text-xs">{user.email?.charAt(0).toUpperCase() || "U"}</span>
+            <div className="relative">
+              <div
+                ref={profileButtonRef}
+                onClick={() => setProfileMenuOpen(prev => !prev)}
+                className="flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-bg-alt border border-border flex items-center justify-center flex-shrink-0">
+                  <UserIcon size={14} className="text-text-dim" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-text truncate">{user.email}</div>
+                </div>
+                <MoreVertical size={14} className="text-text-dim flex-shrink-0" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-text truncate">{user.email}</div>
-              </div>
-              <button onClick={onSignOut} className="p-1.5 rounded-lg text-text-dim hover:text-accent-maroon hover:bg-red-50 transition-colors btn-press flex-shrink-0" title="Keluar">
-                <LogOut size={14} />
-              </button>
+              <AnimatePresence>
+                {profileMenuOpen && (
+                  <Portal>
+                    <motion.div
+                      ref={profileMenuRef}
+                      initial={{ opacity: 0, scale: 0.95, y: 4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 4 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className="z-[100] bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[200px]"
+                      style={{ position: 'fixed', left: 20, bottom: 80 }}
+                    >
+                      <div className="px-3 py-2">
+                        <div className="text-xs font-medium text-text truncate">{user.email}</div>
+                      </div>
+                      <div className="mx-2 my-1 border-t border-border" />
+                      {onShowPrivacy && (
+                        <button onClick={() => { onShowPrivacy(); setProfileMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text hover:bg-bg-alt transition-colors">
+                          <Info size={14} />
+                          Kebijakan Privasi
+                        </button>
+                      )}
+                      <button onClick={() => { onSignOut(); setProfileMenuOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                        <LogOut size={14} />
+                        Keluar
+                      </button>
+                    </motion.div>
+                  </Portal>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <button onClick={onAuthModalOpen} className="w-full flex items-center gap-3 px-1 py-1.5 rounded-xl hover:bg-bg-alt transition-colors btn-press text-left">

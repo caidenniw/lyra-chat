@@ -95,11 +95,6 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
     <div className={`flex animate-message-in ${isUser ? 'justify-end' : 'justify-start'}`}>
       {/* Message Content */}
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[85%] min-w-0`}>
-        {/* Label */}
-        <div className={`text-[11px] md:text-[12px] font-medium mb-0.5 md:mb-1 px-1 ${isUser ? 'text-text-muted' : 'text-primary'}`}>
-          {isUser ? 'Kamu' : 'Lyra'}
-        </div>
-
         {/* Attached files preview — only in user messages */}
         {isUser && message.files && message.files.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
