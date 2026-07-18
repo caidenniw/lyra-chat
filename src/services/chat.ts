@@ -8,6 +8,7 @@ export interface DbConversation {
   project_id: string | null;
   title: string;
   model: string | null;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +44,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
     projectId: conv.project_id,
     title: conv.title,
     model: conv.model || 'mimo-v2.5-free',
+    isPinned: conv.is_pinned,
     messages: [],
     createdAt: new Date(conv.created_at),
     updatedAt: new Date(conv.updated_at),
@@ -140,16 +142,26 @@ export async function createConversation(
 // Update conversation
 export async function updateConversation(
   id: string,
-  updates: Partial<Pick<Conversation, 'title' | 'projectId' | 'model'>>
+  updates: Partial<Pick<Conversation, 'title' | 'projectId' | 'model' | 'isPinned'>>
 ): Promise<boolean> {
   if (!supabase) return false;
 
+  const dbUpdates: Record<string, unknown> = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  if ('isPinned' in updates) {
+    dbUpdates.is_pinned = updates.isPinned;
+    delete dbUpdates.isPinned;
+  }
+  if ('projectId' in updates) {
+    dbUpdates.project_id = updates.projectId;
+    delete dbUpdates.projectId;
+  }
+
   const { error } = await supabase
     .from('conversations')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(dbUpdates)
     .eq('id', id);
 
   if (error) {

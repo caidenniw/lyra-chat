@@ -5,7 +5,6 @@ import { ArtifactBanner } from '../artifact/ArtifactBanner';
 import { extractArtifacts, hasArtifact, hasPartialArtifact, stripArtifacts } from '../../lib/artifact/extractor';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import type { Message } from '../layout/AppShell';
-import logoIcon from '../../assets/gambar2.png';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,10 +12,9 @@ interface MessageBubbleProps {
   onRetry?: () => void;
   onContinue?: () => void;
   onShowArtifact?: (artifact: ArtifactBlock) => void;
-  userEmail?: string | null;
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry, onContinue, onShowArtifact, userEmail }: MessageBubbleProps) {
+export const MessageBubble = memo(function MessageBubble({ message, isStreaming = false, onRetry, onContinue, onShowArtifact }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
   const isUser = message.role === 'user';
@@ -24,10 +22,6 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   const isEmpty = !message.content && !message.reasoningContent && isStreaming;
   const hasReasoning = !!message.reasoningContent;
 
-  // Derive user initial from email for avatar
-  const userInitial = isUser
-    ? (userEmail?.split('@')[0]?.charAt(0).toUpperCase() || 'K')
-    : '';
 
   // Extract artifacts from assistant messages (only when not streaming)
   const artifacts = useMemo(() => {
@@ -98,14 +92,7 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   }
 
   return (
-    <div className={`flex gap-2 md:gap-3 animate-message-in ${isUser ? 'justify-end' : 'justify-start'}`}>
-      {/* Avatar - assistant */}
-      {!isUser && (
-        <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary flex items-center justify-center shadow-soft overflow-hidden">
-          <img src={logoIcon} alt="Lyra" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
-        </div>
-      )}
-
+    <div className={`flex animate-message-in ${isUser ? 'justify-end' : 'justify-start'}`}>
       {/* Message Content */}
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[85%] min-w-0`}>
         {/* Label */}
@@ -134,10 +121,10 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
         {/* Bubble */}
         <div className={`group relative rounded-2xl px-3 py-2.5 md:px-4 md:py-3 transition-all duration-300 ease-out max-w-full min-w-0 overflow-hidden ${
           isUser
-            ? 'bg-user-bg text-user-text rounded-br-md shadow-soft'
+            ? 'bg-user-bg text-user-text shadow-soft'
             : message.isError
-              ? 'bg-red-50 border border-red-200 text-text rounded-bl-md'
-              : 'bg-assistant-bg border border-border-light text-text rounded-bl-md'
+              ? 'bg-red-50 border border-red-200 text-text'
+              : 'bg-assistant-bg border border-border-light text-text'
         }`}>
           {isEmpty ? (
             /* Typing animation dots */
@@ -275,12 +262,6 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
         )}
       </div>
 
-      {/* Avatar - user */}
-      {isUser && (
-        <div className="flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-soft">
-          <span className="text-[10px] md:text-xs font-bold text-white uppercase">{userInitial}</span>
-        </div>
-      )}
     </div>
   );
 });

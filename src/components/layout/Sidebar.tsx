@@ -34,7 +34,11 @@ interface SidebarProps {
 
 export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversations, allMessages, projects, activeId, onSelect, onDelete, onRename, onNewChat, onCreateProject, onMoveToProject, onExportChat, onShowPrivacy, pinnedConversations, onTogglePin }: SidebarProps) {
   const [search, setSearch] = useState("");
-  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    projects.forEach(p => { init[p.id] = true; });
+    return init;
+  });
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -403,10 +407,10 @@ export function Sidebar({ onToggle, user, onAuthModalOpen, onSignOut, conversati
         {/* Header */}
         <div className="px-4 pb-3 pt-4 md:pt-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
               <img src={logoIcon} alt="Lyra" className="w-8 h-8 rounded-xl object-contain" />
               <span className="font-semibold text-text text-base">Lyra</span>
-            </div>
+            </a>
             <button onClick={onToggle} className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors btn-press" title="Tutup sidebar">
               <PanelLeftClose size={16} />
             </button>

@@ -50,6 +50,7 @@ export interface Conversation {
   messages: Message[];
   model: string;
   projectId?: string | null;
+  isPinned?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -107,6 +108,10 @@ export function AppShell() {
         setConversations(dbConversations);
         setMessages(dbMessages);
         setProjects(dbProjects as Project[]);
+
+        // Restore pinned conversations from database
+        const pinnedSet = new Set(dbConversations.filter(c => c.isPinned).map(c => c.id));
+        setPinnedConversations(pinnedSet);
 
         // Set active conversation to the most recent one if exists
         if (dbConversations.length > 0) {
@@ -319,17 +324,21 @@ export function AppShell() {
     setSandboxMode(prev => !prev);
   }, []);
 
-  const handleTogglePin = useCallback((id: string) => {
+  const handleTogglePin = useCallback(async (id: string) => {
+    const newPinned = !pinnedConversations.has(id);
     setPinnedConversations(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
+      if (newPinned) {
         next.add(id);
+      } else {
+        next.delete(id);
       }
       return next;
     });
-  }, []);
+    if (user) {
+      await updateConversationDb(id, { isPinned: newPinned });
+    }
+  }, [pinnedConversations, user]);
 
   // Drag handle for resizing preview panel
   const handleDragStart = useCallback((e: React.MouseEvent) => {
@@ -472,7 +481,7 @@ export function AppShell() {
               </div>
             </div>
           ) : hasMessages ? (
-            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} onCopyAll={handleCopyAllChat} copiedAll={copiedAll} userEmail={user?.email} />
+            <ChatArea messages={activeMessages} streamingMessageId={streamingMessageId} onRetry={retryLastMessage} onContinue={continuePartialArtifact} onShowArtifact={handleShowArtifact} onCopyAll={handleCopyAllChat} copiedAll={copiedAll} />
           ) : (
             <EmptyState onSend={(content: string) => handleSendMessage(content)} user={user} />
           )}
