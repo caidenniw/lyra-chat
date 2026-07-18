@@ -212,3 +212,40 @@ html, body, #root {
 .smooth-scroll {
   scroll-behavior: smooth;
 }
+
+/* === KaTeX Math Rendering === */
+.katex-display {
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0.25rem;
+}
+
+.katex-display .katex {
+  color: #2C2A25;
+  font-size: 1.15em;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+}
+
+.katex-inline .katex {
+  color: #2C2A25;
+  font-size: 1.02em;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+}
+
+/* KaTeX error handled by MathBlock component */
+.katex-display .katex-error {
+  color: #BA6A4C;
+  font-family: 'Inter', monospace;
+  font-size: 0.82em;
+}
+
+/* Math pending animation */
+@keyframes mathPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+.math-pending-cursor {
+  animation: mathPulse 1.2s ease-in-out infinite;
+}

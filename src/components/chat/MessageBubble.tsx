@@ -156,7 +156,7 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
                   )}
                 </div>
               )}
-              <MarkdownRenderer content={displayContent} />
+              <MarkdownRenderer content={displayContent} streaming={isStreaming} />
               {/* Artifact building indicator during streaming */}
               {isArtifactStreaming && (
                 <div className="mt-3 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/15 animate-message-in">
