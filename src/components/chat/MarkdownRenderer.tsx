@@ -172,11 +172,26 @@ function MathBlock({ latex, pending }: { latex: string; pending?: boolean }) {
 // ── Normalize LaTeX delimiters ──
 // AI models often use \[...\] and \(...\) which KaTeX doesn't natively handle.
 // Convert to $$...$$ and $...$ so the rest of the parser works uniformly.
+// IMPORTANT: Skip content inside code blocks to avoid corrupting code.
 function normalizeLatexDelimiters(content: string): string {
-  let result = content;
+  // Step 1: Extract and protect code blocks with placeholders
+  const codeBlocks: string[] = [];
+  let result = content.replace(/```(\w*)\n([\s\S]*?)```/g, (match) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(match);
+    return `__CODE_BLOCK_${idx}__`;
+  });
 
+  // Also protect incomplete code blocks (streaming)
+  const lastOpening = result.lastIndexOf('```');
+  if (lastOpening !== -1) {
+    const idx = codeBlocks.length;
+    codeBlocks.push(result.slice(lastOpening));
+    result = result.slice(0, lastOpening) + `__CODE_BLOCK_${idx}__`;
+  }
+
+  // Step 2: Normalize LaTeX delimiters on non-code text only
   // \[...\] -> $$...$$ (display math)
-  // Use a loop to handle multiple occurrences
   result = result.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => {
     return `$$${math}$$`;
   });
@@ -184,6 +199,11 @@ function normalizeLatexDelimiters(content: string): string {
   // \(...\) -> $...$ (inline math)
   result = result.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => {
     return `$${math}$`;
+  });
+
+  // Step 3: Restore code blocks
+  result = result.replace(/__CODE_BLOCK_(\d+)__/g, (_, idx) => {
+    return codeBlocks[parseInt(idx)];
   });
 
   return result;
@@ -403,6 +423,10 @@ function renderInline(text: string, streaming?: boolean): React.ReactNode[] {
 
     const mathContent = remaining.slice(dollarIdx + 1, closeIdx);
     if (mathContent.trim().length > 0) {
+      // Add text BEFORE the opening $ to buffer
+      if (dollarIdx > 0) {
+        buffer += remaining.slice(0, dollarIdx);
+      }
       if (buffer) {
         parts.push({ text: buffer, type: 'text' });
         buffer = '';
