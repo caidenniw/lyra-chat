@@ -102,6 +102,7 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
     const handleDone = () => {
       // Flush any remaining tokens
       flushTokens();
+      flushReasoning();
       if (pendingFlushRef.current) {
         cancelAnimationFrame(pendingFlushRef.current);
         pendingFlushRef.current = null;
@@ -109,6 +110,25 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
 
       setIsStreaming(false);
       setStreamingMessageId(null);
+
+      // FIX: If model put everything into reasoning but content is empty,
+      // move reasoning to content so it shows in the main response area
+      const assistantId = currentAssistantMsgRef.current?.id;
+      if (assistantId) {
+        setMessages(prev => {
+          const msg = prev.find(m => m.id === assistantId);
+          if (msg && !msg.content?.trim() && msg.reasoningContent?.trim()) {
+            // Model put response in reasoning field — move to content
+            currentAssistantContentRef.current = msg.reasoningContent;
+            return prev.map(m =>
+              m.id === assistantId
+                ? { ...m, content: m.reasoningContent || '', reasoningContent: undefined }
+                : m
+            );
+          }
+          return prev;
+        });
+      }
 
       // Save to Supabase
       const assistantMsg = currentAssistantMsgRef.current;
