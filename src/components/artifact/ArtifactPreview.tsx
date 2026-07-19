@@ -80,11 +80,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   // Convert Lyra files array to Sandpack files object
   const sandpackFiles = useMemo(() => {
-    const spFiles: Record<string, string> = {
-      // Kita harus overwrite /index.js bawaan sandpack (vanilla template) 
-      // agar tidak crash mencari <div id="app">. Kita kosongkan saja.
-      '/index.js': '',
-    };
+    const spFiles: Record<string, string> = {};
     
     // Check if we need to wrap a bare string into HTML
     if (files.length === 1 && !files[0].content.trim().toLowerCase().startsWith('<!doctype') && !files[0].content.trim().toLowerCase().startsWith('<html')) {
@@ -107,6 +103,17 @@ ${files[0].content}
       });
     }
     
+    // Khusus untuk template "static" Sandpack, kadang iframe blank jika tidak ada package.json
+    // yang valid untuk memicu bundler statisnya.
+    spFiles['/package.json'] = JSON.stringify({
+      "name": "lyra-preview",
+      "main": "index.html",
+      "scripts": {
+        "start": "servor --reload"
+      },
+      "dependencies": {}
+    }, null, 2);
+
     return spFiles;
   }, [files]);
 
