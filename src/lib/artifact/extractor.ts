@@ -34,8 +34,8 @@ function parseFiles(code: string): ArtifactFile[] {
     if (startTagEnd === -1) break;
     const startTag = code.substring(startIdx, startTagEnd + 3);
 
-    const pathMatch = startTag.match(/path="([^"]*)"/);
-    const filePath = pathMatch?.[1] || 'index.html';
+    const pathMatch = startTag.match(/path=["']([^"']*)["']/);
+    const filePath = pathMatch?.[1] || `index-${files.length}.html`;
 
     const contentStart = startTagEnd + 3;
     const endIdx = code.indexOf(FILE_END, contentStart);

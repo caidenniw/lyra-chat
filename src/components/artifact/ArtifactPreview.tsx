@@ -90,12 +90,6 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   // Build combined HTML for preview
   const safeCode = useMemo(() => {
-    // Wait until blob URLs are generated before parsing
-    if (Object.keys(blobUrls).length === 0 && files.length > 1) {
-      // It's still generating, return a loading state or basic HTML
-      return '<html><body><div style="font-family: sans-serif; padding: 20px; text-align: center;">Menyiapkan preview...</div></body></html>';
-    }
-
     let code: string;
     if (files.length === 1) {
       code = files[0].content;
