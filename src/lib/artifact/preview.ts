@@ -45,13 +45,13 @@ ${html}
     combinedCss += `\n/* === ${css.path} === */\n${css.content}\n`;
   }
 
-  // 5. Combine all JS
+  // 5. Combine all JS, wrapped in try-catch per file so one error doesn't kill everything
   let combinedJs = "";
   for (const js of jsFiles) {
-    combinedJs += `\n// === ${js.path} ===\n${js.content}\n`;
+    combinedJs += `\n// === ${js.path} ===\ntry {\n${js.content}\n} catch(e) { console.error("Error in ${js.path}:", e); showError("Error in ${js.path}: " + e.message); }\n`;
   }
 
-  // 6. Error catcher script
+  // 6. Error catcher + DOMContentLoaded polyfill
   const errorCatcher = `
 // --- Lyra Error Catcher ---
 (function() {
@@ -68,6 +68,7 @@ ${html}
     badge.textContent = '\\u26A0 ' + count + ': ' + msg;
     try { window.parent.postMessage({ type: 'lyra-error', message: msg, count: count }, '*'); } catch(e) {}
   }
+  window.__LYRA_SHOW_ERROR__ = showError;
   window.addEventListener('error', function(e) {
     var msg = (e.error && e.error.message) || e.message || 'Unknown error';
     showError(msg);
@@ -76,6 +77,28 @@ ${html}
     var msg = (e.reason && e.reason.message) || String(e.reason) || 'Promise rejected';
     showError(msg);
   });
+  
+  // DOMContentLoaded polyfill: catch listeners registered after event already fired
+  var origAddEventListener = document.addEventListener.bind(document);
+  document.addEventListener = function(type, fn, opts) {
+    if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+      try { fn(); } catch(e) { showError('DOMContentLoaded: ' + e.message); }
+      return;
+    }
+    if (type === 'load' && document.readyState === 'complete') {
+      try { fn(); } catch(e) { showError('load: ' + e.message); }
+      return;
+    }
+    origAddEventListener(type, fn, opts);
+  };
+  // Also handle window.onload assignments
+  if (typeof Object.defineProperty === 'function') {
+    var _onload = window.onload;
+    Object.defineProperty(window, 'onload', {
+      get: function() { return _onload; },
+      set: function(fn) { _onload = fn; if (fn && document.readyState === 'complete') try { fn(); } catch(e) {} }
+    });
+  }
 })();
 // --- End Error Catcher ---
 `;
@@ -152,7 +175,8 @@ ${html}
     html = `<style>${combinedCss}</style>\n` + html;
   }
 
-  // 9. Inject JS (error catcher + spa router + all JS) before </body>
+  // 9. Inject JS: error catcher FIRST, then spa router + all combined JS
+  // Error catcher MUST come first so try-catch in combinedJs can use showError()
   const fullJs = `<script>\n${errorCatcher}\n${spaRouter}\n${combinedJs}\n</script>`;
   if (html.includes("</body>")) {
     html = html.replace("</body>", `${fullJs}\n</body>`);
