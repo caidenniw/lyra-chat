@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- /lyra-file -->
 <!-- /lyra-artifact -->
 
+
 ## KUALITAS KODE
 
 1. Setiap file harus LENGKAP dan siap pakai — jangan ada "// ... lanjutkan"
@@ -72,6 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
 5. Gunakan Google Fonts untuk tipografi
 6. JS modern (ES6+) — event delegation, arrow functions, dll
 7. Jika proyek sederhana, tetap pisahkan ke 3 file
+
+## FORMAT SCRIPT & LINK TAG (WAJIB)
+Gunakan format PERSIS ini agar preview berfungsi:
+- **HTML → CSS**: `<link rel="stylesheet" href="css/style.css">`
+- **HTML → JS**: `<script src="js/script.js"></script>`
+- JANGAN pakai `./` di href/src, JANGAN tambah `defer` atau `type=` di script
+- **Pastikan class/id di HTML SAMA PERSIS dengan yang dipanggil di JS**
 
 ## SETELAH ARTIFACT
 

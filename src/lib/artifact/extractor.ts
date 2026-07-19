@@ -166,28 +166,63 @@ export function buildPreviewHtml(files: ArtifactFile[]): string {
 </html>`;
   }
 
-  // Inject CSS files inline
+  // ── Inject CSS files inline ──
   const cssFiles = files.filter(f => f.path.endsWith('.css'));
   for (const css of cssFiles) {
-    html = html.replace(
-      `<link rel="stylesheet" href="${css.path}">`,
-      `<style>\n${css.content}\n</style>`
-    );
     const filename = css.path.split('/').pop() || css.path;
-    html = html.replace(
-      new RegExp(`<link[^>]*href=["'][^"']*${filename.replace('.', '\\.')}["'][^>]*>`, 'gi'),
-      `<style>\n${css.content}\n</style>`
+    const escapedFilename = filename.replace('.', '\\.');
+
+    // Flexible regex: handle ./ prefix, extra attrs, spacing
+    const cssRegex = new RegExp(
+      '<link[^>]*href=["\']' +
+      '(?:[^"\']*?/)?' +       // optional directory path (e.g. css/)
+      escapedFilename +
+      '["\'][^>]*\\s*/?>' +
+      '(?:\\s*</link>)?',
+      'gi'
     );
+
+    html = html.replace(cssRegex, `<style>\n${css.content}\n</style>`);
   }
 
-  // Inject JS files inline
+  // ── Inject JS files inline ──
   const jsFiles = files.filter(f => f.path.endsWith('.js'));
   for (const js of jsFiles) {
     const filename = js.path.split('/').pop() || js.path;
-    html = html.replace(
-      new RegExp(`<script[^>]*src=["'][^"']*${filename.replace('.', '\\.')}["'][^>]*>\\s*</script>`, 'gi'),
-      `<script>\n${js.content}\n</script>`
+    const escapedFilename = filename.replace('.', '\\.');
+
+    // Flexible regex: handle ./ prefix, defer, type="", extra attrs, spacing
+    const jsRegex = new RegExp(
+      '<script[^>]*src=["\']' +
+      '(?:[^"\']*?/)?' +        // optional directory path (e.g. js/)
+      escapedFilename +
+      '["\'][^>]*>' +
+      '\\s*</script>',
+      'gi'
     );
+
+    html = html.replace(jsRegex, `<script>\n${js.content}\n</script>`);
+  }
+
+  // ── FALLBACK: if any css/js file was NOT injected, append at end of body ──
+  // Check if css still has external links
+  for (const css of cssFiles) {
+    const filename = css.path.split('/').pop() || css.path;
+    if (html.includes(filename) && html.includes('<link')) {
+      // Still has external CSS reference — append inline style before </head>
+      console.warn(`[Artifact] CSS not injected via regex — appending fallback: ${css.path}`);
+      html = html.replace('</head>', `<style>\n${css.content}\n</style>\n</head>`);
+    }
+  }
+
+  // Check if js still has script src (not yet injected)
+  for (const js of jsFiles) {
+    const filename = js.path.split('/').pop() || js.path;
+    if (html.includes(filename) && html.includes('<script') && html.includes('src=')) {
+      // Still has external JS reference — append inline script before </body>
+      console.warn(`[Artifact] JS not injected via regex — appending fallback: ${js.path}`);
+      html = html.replace('</body>', `<script>\n${js.content}\n</script>\n</body>`);
+    }
   }
 
   return html;
