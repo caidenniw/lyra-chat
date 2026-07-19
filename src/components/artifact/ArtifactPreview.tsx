@@ -80,7 +80,11 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   // Convert Lyra files array to Sandpack files object
   const sandpackFiles = useMemo(() => {
-    const spFiles: Record<string, string> = {};
+    const spFiles: Record<string, string> = {
+      // Kosongkan index.js agar template vanilla tidak menimpa div#app
+      // dan membiarkan index.html asli dari AI untuk dirender apa adanya.
+      '/index.js': ''
+    };
     
     // Check if we need to wrap a bare string into HTML
     if (files.length === 1 && !files[0].content.trim().toLowerCase().startsWith('<!doctype') && !files[0].content.trim().toLowerCase().startsWith('<html')) {
@@ -102,17 +106,6 @@ ${files[0].content}
         spFiles[path] = f.content;
       });
     }
-    
-    // Khusus untuk template "static" Sandpack, kadang iframe blank jika tidak ada package.json
-    // yang valid untuk memicu bundler statisnya.
-    spFiles['/package.json'] = JSON.stringify({
-      "name": "lyra-preview",
-      "main": "index.html",
-      "scripts": {
-        "start": "servor --reload"
-      },
-      "dependencies": {}
-    }, null, 2);
 
     return spFiles;
   }, [files]);
@@ -167,7 +160,7 @@ ${files[0].content}
 
   return (
     <SandpackProvider 
-      template="static" 
+      template="vanilla" 
       theme="dark" 
       files={sandpackFiles}
       options={{
@@ -331,7 +324,7 @@ ${files[0].content}
                 className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
                 style={{ width: '100%', height: '100%', maxWidth: DEVICE_WIDTHS[device] }}
               >
-                <SandpackLayout style={{ flex: 1, height: '100%', minHeight: 0, margin: 0, padding: 0 }}>
+                <SandpackLayout style={{ flex: 1, minHeight: 0, margin: 0, padding: 0 }}>
                   <SandpackPreview
                     showOpenInCodeSandbox={false}
                     showRefreshButton={false}
@@ -349,7 +342,7 @@ ${files[0].content}
               className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
               style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%', height: '100%' }}
             >
-              <SandpackLayout style={{ flex: 1, height: '100%', minHeight: 0, margin: 0, padding: 0 }}>
+              <SandpackLayout style={{ flex: 1, minHeight: 0, margin: 0, padding: 0 }}>
                 <SandpackPreview
                   showOpenInCodeSandbox={false}
                   showRefreshButton={false}
