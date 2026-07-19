@@ -24,12 +24,12 @@ const ENV_MODELS = (process.env.AI_ALLOWED_MODELS || '').split(',').map(m => m.t
 const ALLOWED_MODELS = [...new Set([...ENV_MODELS, ...HARDCODED_MODELS])];
 const MAX_TOKENS = parseInt(process.env.AI_MAX_TOKENS || '32768', 10);
 
-const MAX_MESSAGES = 50;
-const MAX_MESSAGE_LENGTH = 50000;
+const MAX_MESSAGES = 150;
+const MAX_MESSAGE_LENGTH = 200000;
 
 // Simple in-memory rate limit (per function instance)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30; // requests per minute
+const RATE_LIMIT = 60; // requests per minute
 const RATE_WINDOW = 60 * 1000; // 1 minute
 
 function checkRateLimit(ip: string): boolean {

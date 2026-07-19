@@ -26,12 +26,12 @@ const aiUrl = new URL(AI_BASE_URL);
 const AI_HOSTNAME = aiUrl.hostname;
 const AI_PATH = aiUrl.pathname;
 
-const MAX_MESSAGES = 50;
-const MAX_MESSAGE_LENGTH = 50000;
+const MAX_MESSAGES = 150;
+const MAX_MESSAGE_LENGTH = 200000;
 
 // Simple rate limit
 const rateLimitMap = new Map();
-const RATE_LIMIT = 30;
+const RATE_LIMIT = 60;
 const RATE_WINDOW = 60 * 1000;
 
 function checkRateLimit(ip) {
@@ -46,8 +46,8 @@ function checkRateLimit(ip) {
   return true;
 }
 
-// Parse JSON body
-app.use(express.json({ limit: '1mb' }));
+// Parse JSON body with higher limit for images/files
+app.use(express.json({ limit: '20mb' }));
 
 // Health check — Railway needs a quick 200 on /health or similar
 app.get('/health', (req, res) => {
@@ -184,9 +184,13 @@ app.get('/chat/*splat', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Lyra Chat server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`AI Provider: ${AI_HOSTNAME}${AI_PATH}`);
   console.log(`Allowed models: ${ALLOWED_MODELS.length} configured`);
 });
+
+// Disable timeout so long-running reasoning models don't get cut off
+server.timeout = 0;
+server.keepAliveTimeout = 0;
