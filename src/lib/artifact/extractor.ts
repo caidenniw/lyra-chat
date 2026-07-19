@@ -166,19 +166,32 @@ export function buildPreviewHtmlWithBlobs(files: ArtifactFile[], urlMap: Record<
 </html>`;
   }
 
-  // ── Replace file paths with Blob URLs ──
-  // Sort keys by length descending so longer paths (e.g., 'js/script.js') are replaced before shorter ones ('script.js')
-  const paths = Object.keys(urlMap).sort((a, b) => b.length - a.length);
-  
-  for (const path of paths) {
+  // ── Replace file paths with Blob URLs using robust string replacement ──
+  for (const path of Object.keys(urlMap)) {
     const blobUrl = urlMap[path];
     const filename = path.split('/').pop() || path;
-    const escapedPath = path.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const escapedFilename = filename.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-
-    // Regex to match href or src containing the path or just the filename, ignoring leading ./
-    const regex = new RegExp(`(href|src)=["'](?:\\./)?(${escapedPath}|${escapedFilename})["']`, 'gi');
-    html = html.replace(regex, `$1="${blobUrl}"`);
+    
+    if (path.endsWith('.css')) {
+      // Replace entire <link> tag that points to this css file
+      const linkRegex = new RegExp(`<link[^>]*href=["'][^"']*?${escapedFilename}["'][^>]*>`, 'gi');
+      if (linkRegex.test(html)) {
+        html = html.replace(linkRegex, `<link rel="stylesheet" href="${blobUrl}">`);
+      } else {
+        // Fallback: If no link found, inject it before </head>
+        html = html.replace('</head>', `<link rel="stylesheet" href="${blobUrl}">\n</head>`);
+      }
+    } 
+    else if (path.endsWith('.js')) {
+      // Replace entire <script> tag that points to this js file
+      const scriptRegex = new RegExp(`<script[^>]*src=["'][^"']*?${escapedFilename}["'][^>]*>(?:\\s*</script>)?`, 'gi');
+      if (scriptRegex.test(html)) {
+        html = html.replace(scriptRegex, `<script src="${blobUrl}"></script>`);
+      } else {
+        // Fallback: If no script found, inject it before </body>
+        html = html.replace('</body>', `<script src="${blobUrl}"></script>\n</body>`);
+      }
+    }
   }
 
   // ── Inject error catcher wrapper ──
