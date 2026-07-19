@@ -65,6 +65,7 @@ export function extractArtifacts(content: string): ArtifactBlock[] {
   const artifacts: ArtifactBlock[] = [];
   let searchFrom = 0;
 
+  // 1. Parse standard Lyra HTML-comment format
   while (searchFrom < content.length) {
     const startIdx = content.indexOf(ARTIFACT_START, searchFrom);
     if (startIdx === -1) break;
@@ -94,6 +95,34 @@ export function extractArtifacts(content: string): ArtifactBlock[] {
     searchFrom = endIdx + ARTIFACT_END.length;
   }
 
+  // 2. Parse fallback XML format (<artifact>...</artifact>) used by some LLMs
+  const xmlRegex = /<artifact>([\s\S]*?)<\/artifact>/g;
+  let match;
+  const xmlFiles: ArtifactFile[] = [];
+  
+  while ((match = xmlRegex.exec(content)) !== null) {
+    const block = match[1];
+    const nameMatch = block.match(/<name>([\s\S]*?)<\/name>/);
+    const contentMatch = block.match(/<content>([\s\S]*?)<\/content>/);
+    
+    if (nameMatch && contentMatch) {
+      xmlFiles.push({
+        path: nameMatch[1].trim(),
+        content: contentMatch[1].trim()
+      });
+    }
+  }
+
+  // If XML artifacts were found, group them as one artifact project
+  if (xmlFiles.length > 0) {
+    artifacts.push({
+      id: `artifact-xml-${Date.now()}`,
+      code: xmlFiles.map(f => f.content).join('\\n'),
+      title: 'Generated App',
+      files: xmlFiles
+    });
+  }
+
   return artifacts;
 }
 
@@ -101,14 +130,17 @@ export function extractArtifacts(content: string): ArtifactBlock[] {
  * Check if a message contains at least one artifact block (complete).
  */
 export function hasArtifact(content: string): boolean {
-  return content.includes(ARTIFACT_START) && content.includes(ARTIFACT_END);
+  return (content.includes(ARTIFACT_START) && content.includes(ARTIFACT_END)) || 
+         (content.includes('<artifact>') && content.includes('</artifact>'));
 }
 
 /**
  * Check if message has a start marker but NO end marker (incomplete/partial artifact).
  */
 export function hasPartialArtifact(content: string): boolean {
-  return content.includes(ARTIFACT_START) && !content.includes(ARTIFACT_END);
+  const hasLyraPartial = content.includes(ARTIFACT_START) && !content.includes(ARTIFACT_END);
+  const hasXmlPartial = content.includes('<artifact>') && !content.includes('</artifact>');
+  return hasLyraPartial || hasXmlPartial;
 }
 
 /**
@@ -117,8 +149,16 @@ export function hasPartialArtifact(content: string): boolean {
  */
 export function stripArtifacts(content: string): string {
   let result = content;
-  let idx = 0;
+  
+  // 1. Strip XML format
+  result = result.replace(/<artifact>([\s\S]*?)<\/artifact>/g, '');
+  if (result.includes('<artifact>')) {
+    // Partial XML strip
+    result = result.substring(0, result.indexOf('<artifact>'));
+  }
 
+  // 2. Strip Lyra format
+  let idx = 0;
   while (true) {
     const startIdx = result.indexOf(ARTIFACT_START, idx);
     if (startIdx === -1) break;

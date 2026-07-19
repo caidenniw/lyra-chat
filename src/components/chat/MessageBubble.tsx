@@ -33,7 +33,7 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   // Check if artifact is being generated (streaming + contains start marker)
   const isArtifactStreaming = useMemo(() => {
     if (!isStreaming || isUser || isSystem) return false;
-    return message.content.includes('<!-- lyra-artifact');
+    return message.content.includes('<!-- lyra-artifact') || message.content.includes('<artifact>');
   }, [message.content, isStreaming, isUser, isSystem]);
 
   // Check if artifact was truncated (start marker exists but no end marker, and NOT streaming)
@@ -46,8 +46,17 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   const displayContent = useMemo(() => {
     const content = message.content;
     if (isArtifactStreaming) {
-      // During streaming: remove everything from <!-- lyra-artifact onwards
-      const startIdx = content.indexOf('<!-- lyra-artifact');
+      // During streaming: remove everything from artifact onwards
+      const startIdxLyra = content.indexOf('<!-- lyra-artifact');
+      const startIdxXml = content.indexOf('<artifact>');
+      
+      let startIdx = -1;
+      if (startIdxLyra !== -1 && startIdxXml !== -1) {
+        startIdx = Math.min(startIdxLyra, startIdxXml);
+      } else {
+        startIdx = Math.max(startIdxLyra, startIdxXml);
+      }
+      
       if (startIdx !== -1) {
         return content.substring(0, startIdx).trim();
       }
