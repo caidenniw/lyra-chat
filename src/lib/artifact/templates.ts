@@ -75,11 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
 7. Jika proyek sederhana, tetap pisahkan ke 3 file
 
 ## FORMAT SCRIPT & LINK TAG (WAJIB)
-Gunakan format PERSIS ini agar preview berfungsi:
-- **HTML → CSS**: `<link rel="stylesheet" href="css/style.css">`
-- **HTML → JS**: `<script src="js/script.js"></script>`
-- JANGAN pakai `./` di href/src, JANGAN tambah `defer` atau `type=` di script
-- **Pastikan class/id di HTML SAMA PERSIS dengan yang dipanggil di JS**
+Gunakan format persis ini agar preview berfungsi:
+
+HTML ke CSS:
+  <link rel="stylesheet" href="css/style.css">
+
+HTML ke JS:
+  <script src="js/script.js"></script>
+
+JANGAN pakai ./ di href/src, JANGAN tambah defer atau type= di script.
+Pastikan class/id di HTML SAMA PERSIS dengan yang dipanggil di JS.
 
 ## SETELAH ARTIFACT
 
