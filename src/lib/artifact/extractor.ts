@@ -226,23 +226,71 @@ export function buildPreviewHtml(files: ArtifactFile[]): string {
   }
 
   // ── Inject error catcher wrapper ──
-  // Wrap regular scripts with error handling + detect pointer-events issues
-  html = html.replace(
-    /<script>\n([\s\S]*?)<\/script>/g,
-    (match, scriptContent) => {
-      // Skip if already wrapped
-      if (scriptContent.includes('__LYRA_ERROR_CATCHER__')) return match;
+  // Inject a global error handler BEFORE all scripts
+  // This catches runtime errors and shows a badge in the preview
+  const errorCatcherScript = `<script>
+// --- Lyra Error Catcher ---
+window.__LYRA_ERROR_CATCHER__ = true;
+window.addEventListener('error', function(e) {
+  console.error('[Lyra Error]', e.error ? e.error.message : e.message);
+  var msg = (e.error ? e.error.message : e.message) || 'Unknown error';
+  var badge = document.getElementById('lyra-error-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'lyra-error-badge';
+    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    document.body.appendChild(badge);
+  }
+  var count = parseInt(badge.dataset.count || '0') + 1;
+  badge.dataset.count = count;
+  badge.textContent = '\u26A0\uFE0F ' + count + ': ' + msg;
+});
+window.addEventListener('unhandledrejection', function(e) {
+  var msg = (e.reason && e.reason.message) || String(e.reason) || 'Promise rejection';
+  var badge = document.getElementById('lyra-error-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'lyra-error-badge';
+    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    document.body.appendChild(badge);
+  }
+  var count = parseInt(badge.dataset.count || '0') + 1;
+  badge.dataset.count = count;
+  badge.textContent = '\u26A0\uFE0F ' + count + ': ' + msg;
+});
+// --- End Error Catcher ---
+</script>`;
 
-      const wrapped = `\n// --- Lyra Error Catcher ---\nwindow.__LYRA_ERROR_CATCHER__ = true;\nwindow.addEventListener('error', function(e) {\n  console.error('[Lyra Error]', e.error ? e.error.message : e.message);\n  var msg = (e.error ? e.error.message : e.message) || 'Unknown error';\n  // Show badge in iframe\n  var badge = document.getElementById('lyra-error-badge');\n  if (!badge) {\n    badge = document.createElement('div');\n    badge.id = 'lyra-error-badge';\n    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.3s;';\n    document.body.appendChild(badge);\n  }\n  var count = parseInt(badge.dataset.count || '0') + 1;\n  badge.dataset.count = count;\n  badge.textContent = '\\u26A0\\uFE0F ' + count + ': ' + msg;\n  setTimeout(function() { if (badge) badge.style.opacity = '0.5'; }, 8000);\n  // Notify parent window if embedded\n  try { window.parent.postMessage({ type: 'lyra-error', message: msg, count: count }, '*'); } catch(e) {}\n});\n// Handle unhandled promise rejections too\nwindow.addEventListener('unhandledrejection', function(e) {\n  console.error('[Lyra Error] Unhandled Promise:', e.reason);\n  var msg = (e.reason && e.reason.message) || String(e.reason) || 'Promise rejection';\n  var badge = document.getElementById('lyra-error-badge');\n  if (!badge) {\n    badge = document.createElement('div');\n    badge.id = 'lyra-error-badge';\n    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.3s;';\n    document.body.appendChild(badge);\n  }\n  var count = parseInt(badge.dataset.count || '0') + 1;\n  badge.dataset.count = count;\n  badge.textContent = '\\u26A0\\uFE0F ' + count + ': ' + msg;\n  try { window.parent.postMessage({ type: 'lyra-error', message: msg, count: count }, '*'); } catch(e) {}\n});\n// --- End Error Catcher ---\n\n${scriptContent}`;
+  // Inject before </head> (for CSS) and before </body> (for scripts)
+  // Inject error catcher right after <body> so it catches everything
+  html = html.replace('<body>', '<body>' + errorCatcherScript);
 
-      return `<script>${wrapped}</script>`;
-    }
-  );
-
-  // Also detect common CSS issues
-  const cssWarning = `\n/* Lyra CSS Check */\n@media (scripting: enabled) {\n  /* Warn if pointer-events:none blocks clicks */\n  [style*="pointer-events: none"] button,\n  [style*="pointer-events: none"] a,\n  [style*="pointer-events: none"] .btn,\n  [style*="pointer-events: none"] [onclick],\n  [style*="pointer-events: none"] [role="button"] {\n    outline: 3px solid #ef4444 !important;\n    outline-offset: 2px !important;\n    position: relative !important;\n  }\n  [style*="pointer-events: none"] button::after,\n  [style*="pointer-events: none"] a::after,\n  [style*="pointer-events: none"] .btn::after {\n    content: \" BLOCKED by pointer-events:none on parent!\" !important;\n    position: absolute !important;\n    bottom: 100% !important;\n    left: 0 !important;\n    background: #ef4444 !important;\n    color: white !important;\n    font: 10px/1.2 system-ui,sans-serif !important;\n    padding: 2px 6px !important;\n    border-radius: 4px !important;\n    white-space: nowrap !important;\n    z-index: 99999 !important;\n  }\n}\n`;
-
-  html = html.replace('</head>', `<style>${cssWarning}\n</style>\n</head>`);
+  // Also detect common CSS issues: show red outline on elements blocked by pointer-events
+  const cssCheckStyle = `<style>
+/* Lyra CSS Check - highlight elements blocked by pointer-events:none */
+[style*="pointer-events: none"] button,
+[style*="pointer-events: none"] a,
+[style*="pointer-events: none"] [onclick],
+[style*="pointer-events: none"] [role="button"] {
+  outline: 3px solid #ef4444 !important;
+  outline-offset: 2px !important;
+}
+[style*="pointer-events: none"] button::after,
+[style*="pointer-events: none"] a::after {
+  content: " BLOCKED by pointer-events:none on parent!" !important;
+  position: absolute !important;
+  bottom: 100% !important;
+  left: 0 !important;
+  background: #ef4444 !important;
+  color: white !important;
+  font: 10px/1.2 sans-serif !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+  z-index: 99999 !important;
+}
+</style>`;
+  html = html.replace('</head>', cssCheckStyle + '\n</head>');
 
   return html;
 }
