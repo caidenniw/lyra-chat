@@ -191,6 +191,8 @@ const server = app.listen(PORT, () => {
   console.log(`Allowed models: ${ALLOWED_MODELS.length} configured`);
 });
 
-// Disable timeout so long-running reasoning models don't get cut off
-server.timeout = 0;
-server.keepAliveTimeout = 0;
+// Set a high timeout (10 minutes) so long-running reasoning models don't get cut off,
+// but DO NOT set it to 0, as 0 breaks Railway's TCP Healthcheck keep-alive mechanism.
+server.timeout = 600000;
+server.keepAliveTimeout = 610000;
+server.headersTimeout = 620000;
