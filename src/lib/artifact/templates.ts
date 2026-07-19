@@ -83,20 +83,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ### Untuk JavaScript & Interaksi (PENTING):
 1. Tulis kode JS yang SEDERHANA dan VALID. Jangan buat event delegation kompleks jika tidak perlu.
-2. Gunakan `document.querySelectorAll()` lalu loop dengan `.forEach()` untuk menambahkan event listener ke elemen (misal tombol).
-3. Karena script dimuat di akhir body, elemen sudah ada di DOM. Tidak perlu `DOMContentLoaded`. Langsung saja:
-   ```javascript
+2. Gunakan document.querySelectorAll() lalu loop dengan .forEach() untuk menambahkan event listener ke elemen (misal tombol).
+3. Karena script dimuat di akhir body, elemen sudah ada di DOM. Tidak perlu DOMContentLoaded. Langsung saja:
+   
    // Inisialisasi awal
    const btns = document.querySelectorAll('.my-btn');
    btns.forEach(btn => {
      btn.addEventListener('click', () => { /* aksi */ });
    });
-   ```
+   
 4. Untuk Multiple Screen/SPA Vanilla:
    - Simpan data tampilan di variabel array/object.
-   - Buat fungsi `renderPage(pageName)` yang membersihkan (innerHTML = '') dan mengisi ulang parent container utama dengan data baru.
-   - Setiap kali `renderPage` dipanggil, INGAT untuk menempelkan ulang (re-attach) event listener ke tombol-tombol yang baru saja dirender!
-5. Jangan gunakan sintaks aneh atau event ganda yang salah (seperti `addEventListener('click touchstart')` ← INI ERROR). Cukup gunakan `click`.
+   - Buat fungsi renderPage(pageName) yang membersihkan (innerHTML = "") dan mengisi ulang parent container utama dengan data baru.
+   - Setiap kali renderPage dipanggil, INGAT untuk menempelkan ulang (re-attach) event listener ke tombol-tombol yang baru saja dirender!
+5. Jangan gunakan sintaks aneh atau event ganda yang salah (seperti addEventListener('click touchstart') ← INI ERROR). Cukup gunakan 'click'.
 
 ## FORMAT SCRIPT & LINK TAG (WAJIB)
 Gunakan format persis ini agar preview berfungsi:
