@@ -141,14 +141,14 @@ export function stripArtifacts(content: string): string {
 
 
 /**
- * Combine multiple files into a single HTML document for iframe preview.
- * If index.html exists, inject CSS and JS from other files inline.
+ * Prepare HTML for iframe preview using Blob URLs.
+ * This function replaces relative file paths in the HTML with their corresponding Blob URLs.
+ * It also injects the error catcher so we still get UI badges for JS errors.
  */
-export function buildPreviewHtml(files: ArtifactFile[]): string {
+export function buildPreviewHtmlWithBlobs(files: ArtifactFile[], urlMap: Record<string, string>): string {
   let html = files.find(f => f.path === 'index.html')?.content || '';
 
   if (!html) {
-    // If no index.html, take the first HTML file
     const htmlFile = files.find(f => f.path.endsWith('.html'));
     html = htmlFile?.content || files[0]?.content || '';
   }
@@ -166,63 +166,19 @@ export function buildPreviewHtml(files: ArtifactFile[]): string {
 </html>`;
   }
 
-  // ── Inject CSS files inline ──
-  const cssFiles = files.filter(f => f.path.endsWith('.css'));
-  for (const css of cssFiles) {
-    const filename = css.path.split('/').pop() || css.path;
-    const escapedFilename = filename.replace('.', '\\.');
+  // ── Replace file paths with Blob URLs ──
+  // Sort keys by length descending so longer paths (e.g., 'js/script.js') are replaced before shorter ones ('script.js')
+  const paths = Object.keys(urlMap).sort((a, b) => b.length - a.length);
+  
+  for (const path of paths) {
+    const blobUrl = urlMap[path];
+    const filename = path.split('/').pop() || path;
+    const escapedPath = path.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const escapedFilename = filename.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 
-    // Flexible regex: handle ./ prefix, extra attrs, spacing
-    const cssRegex = new RegExp(
-      '<link[^>]*href=["\']' +
-      '(?:[^"\']*?/)?' +       // optional directory path (e.g. css/)
-      escapedFilename +
-      '["\'][^>]*\\s*/?>' +
-      '(?:\\s*</link>)?',
-      'gi'
-    );
-
-    html = html.replace(cssRegex, `<style>\n${css.content}\n</style>`);
-  }
-
-  // ── Inject JS files inline ──
-  const jsFiles = files.filter(f => f.path.endsWith('.js'));
-  for (const js of jsFiles) {
-    const filename = js.path.split('/').pop() || js.path;
-    const escapedFilename = filename.replace('.', '\\.');
-
-    // Flexible regex: handle ./ prefix, defer, type="", extra attrs, spacing
-    const jsRegex = new RegExp(
-      '<script[^>]*src=["\']' +
-      '(?:[^"\']*?/)?' +        // optional directory path (e.g. js/)
-      escapedFilename +
-      '["\'][^>]*>' +
-      '\\s*</script>',
-      'gi'
-    );
-
-    html = html.replace(jsRegex, `<script>\n${js.content}\n</script>`);
-  }
-
-  // ── FALLBACK: if any css/js file was NOT injected, append at end of body ──
-  // Check if css still has external links
-  for (const css of cssFiles) {
-    const filename = css.path.split('/').pop() || css.path;
-    if (html.includes(filename) && html.includes('<link')) {
-      // Still has external CSS reference — append inline style before </head>
-      console.warn(`[Artifact] CSS not injected via regex — appending fallback: ${css.path}`);
-      html = html.replace('</head>', `<style>\n${css.content}\n</style>\n</head>`);
-    }
-  }
-
-  // Check if js still has script src (not yet injected)
-  for (const js of jsFiles) {
-    const filename = js.path.split('/').pop() || js.path;
-    if (html.includes(filename) && html.includes('<script') && html.includes('src=')) {
-      // Still has external JS reference — append inline script before </body>
-      console.warn(`[Artifact] JS not injected via regex — appending fallback: ${js.path}`);
-      html = html.replace('</body>', `<script>\n${js.content}\n</script>\n</body>`);
-    }
+    // Regex to match href or src containing the path or just the filename, ignoring leading ./
+    const regex = new RegExp(`(href|src)=["'](?:\\./)?(${escapedPath}|${escapedFilename})["']`, 'gi');
+    html = html.replace(regex, `$1="${blobUrl}"`);
   }
 
   // ── Inject error catcher wrapper ──
@@ -238,32 +194,41 @@ window.addEventListener('error', function(e) {
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'lyra-error-badge';
-    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.3s;';
     document.body.appendChild(badge);
   }
   var count = parseInt(badge.dataset.count || '0') + 1;
   badge.dataset.count = count;
-  badge.textContent = '\u26A0\uFE0F ' + count + ': ' + msg;
+  badge.textContent = '\\u26A0\\uFE0F ' + count + ': ' + msg;
+  setTimeout(function() { if (badge) badge.style.opacity = '0.5'; }, 8000);
+  // Notify parent window if embedded
+  try { window.parent.postMessage({ type: 'lyra-error', message: msg, count: count }, '*'); } catch(e) {}
 });
 window.addEventListener('unhandledrejection', function(e) {
+  console.error('[Lyra Error] Unhandled Promise:', e.reason);
   var msg = (e.reason && e.reason.message) || String(e.reason) || 'Promise rejection';
   var badge = document.getElementById('lyra-error-badge');
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'lyra-error-badge';
-    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+    badge.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#ef4444;color:white;font:11px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:6px;z-index:99999;max-width:80%;pointer-events:auto;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.3s;';
     document.body.appendChild(badge);
   }
   var count = parseInt(badge.dataset.count || '0') + 1;
   badge.dataset.count = count;
-  badge.textContent = '\u26A0\uFE0F ' + count + ': ' + msg;
+  badge.textContent = '\\u26A0\\uFE0F ' + count + ': ' + msg;
+  try { window.parent.postMessage({ type: 'lyra-error', message: msg, count: count }, '*'); } catch(e) {}
 });
 // --- End Error Catcher ---
 </script>`;
 
   // Inject before </head> (for CSS) and before </body> (for scripts)
-  // Inject error catcher right after <body> so it catches everything
-  html = html.replace('<body>', '<body>' + errorCatcherScript);
+  // Inject error catcher right after <head> or <body> so it catches everything
+  if (html.includes('<head>')) {
+    html = html.replace('<head>', '<head>\n' + errorCatcherScript);
+  } else {
+    html = html.replace('<body>', '<body>\n' + errorCatcherScript);
+  }
 
   // Also detect common CSS issues: show red outline on elements blocked by pointer-events
   const cssCheckStyle = `<style>
@@ -290,7 +255,9 @@ window.addEventListener('unhandledrejection', function(e) {
   z-index: 99999 !important;
 }
 </style>`;
-  html = html.replace('</head>', cssCheckStyle + '\n</head>');
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', cssCheckStyle + '\n</head>');
+  }
 
   return html;
 }

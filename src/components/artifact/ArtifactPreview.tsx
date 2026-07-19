@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
-import { buildPreviewHtml } from '../../lib/artifact/extractor';
+import { buildPreviewHtmlWithBlobs } from '../../lib/artifact/extractor';
 import { FileTree } from './FileTree';
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
@@ -57,8 +57,45 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     URL.revokeObjectURL(url);
   }, [files, artifact.title]);
 
+  // Manage Blob URLs for external files in State so it triggers re-render
+  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+
+  // Generate Blob URLs whenever files change
+  useEffect(() => {
+    const newUrlMap: Record<string, string> = {};
+
+    files.forEach(file => {
+      // Don't blob the main index.html (handled separately)
+      if (file.path === 'index.html' || file.path.endsWith('/index.html')) return;
+
+      const ext = file.path.split('.').pop()?.toLowerCase();
+      let mimeType = 'text/plain';
+      if (ext === 'css') mimeType = 'text/css';
+      else if (ext === 'js' || ext === 'mjs') mimeType = 'application/javascript';
+      else if (ext === 'json') mimeType = 'application/json';
+      else if (ext === 'svg') mimeType = 'image/svg+xml';
+      else if (ext === 'html') mimeType = 'text/html';
+
+      const blob = new Blob([file.content], { type: mimeType });
+      newUrlMap[file.path] = URL.createObjectURL(blob);
+    });
+
+    setBlobUrls(newUrlMap);
+
+    // Cleanup on unmount or file change
+    return () => {
+      Object.values(newUrlMap).forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [files]);
+
   // Build combined HTML for preview
   const safeCode = useMemo(() => {
+    // Wait until blob URLs are generated before parsing
+    if (Object.keys(blobUrls).length === 0 && files.length > 1) {
+      // It's still generating, return a loading state or basic HTML
+      return '<html><body><div style="font-family: sans-serif; padding: 20px; text-align: center;">Menyiapkan preview...</div></body></html>';
+    }
+
     let code: string;
     if (files.length === 1) {
       code = files[0].content;
@@ -74,10 +111,10 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 </html>`;
       }
     } else {
-      code = buildPreviewHtml(files);
+      code = buildPreviewHtmlWithBlobs(files, blobUrls);
     }
     return code;
-  }, [files]);
+  }, [files, blobUrls]);
 
   // Encode HTML to data: URL
   const dataUrl = useMemo(() => {
