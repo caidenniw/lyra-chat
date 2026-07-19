@@ -80,7 +80,11 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   // Convert Lyra files array to Sandpack files object
   const sandpackFiles = useMemo(() => {
-    const spFiles: Record<string, string> = {};
+    const spFiles: Record<string, string> = {
+      // Kita harus overwrite /index.js bawaan sandpack (vanilla template) 
+      // agar tidak crash mencari <div id="app">. Kita kosongkan saja.
+      '/index.js': '',
+    };
     
     // Check if we need to wrap a bare string into HTML
     if (files.length === 1 && !files[0].content.trim().toLowerCase().startsWith('<!doctype') && !files[0].content.trim().toLowerCase().startsWith('<html')) {
@@ -152,7 +156,7 @@ ${files[0].content}
 
   return (
     <SandpackProvider 
-      template="vanilla" 
+      template="static" 
       theme="dark" 
       files={sandpackFiles}
       options={{
