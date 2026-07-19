@@ -110,9 +110,20 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     return code;
   }, [files, blobUrls]);
 
-  // Encode HTML to data: URL
-  const dataUrl = useMemo(() => {
-    return 'data:text/html;charset=utf-8,' + encodeURIComponent(safeCode);
+  // Convert HTML to a Blob URL instead of a data: URL.
+  // This is CRUCIAL because Blob URLs share the same origin as the parent window,
+  // allowing the iframe to successfully load the CSS and JS Blob URLs we injected.
+  // A data: URL has an opaque origin and would block blob: resources due to CORS.
+  const [dataUrl, setDataUrl] = useState<string>('');
+
+  useEffect(() => {
+    const blob = new Blob([safeCode], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    setDataUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [safeCode]);
 
   // Highlight.js: auto-detect language from current file
@@ -171,7 +182,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   const handleRefresh = useCallback(() => {
     const iframe = iframeRef.current;
-    if (iframe) {
+    if (iframe && dataUrl) {
       iframe.src = 'about:blank';
       requestAnimationFrame(() => { iframe.src = dataUrl; });
     }
@@ -361,9 +372,9 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
             >
               <iframe
                 ref={iframeRef}
-                src={dataUrl}
+                src={dataUrl || 'about:blank'}
                 title={artifact.title || 'Website Preview'}
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 className="w-full h-full border-0"
                 style={{ minHeight: '100%' }}
               />
@@ -379,9 +390,9 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
           >
             <iframe
               ref={iframeRef}
-              src={dataUrl}
+              src={dataUrl || 'about:blank'}
               title={artifact.title || 'Website Preview'}
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               className="w-full h-full border-0"
               style={{ minHeight: '100%' }}
             />
