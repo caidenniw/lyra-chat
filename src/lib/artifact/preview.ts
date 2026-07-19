@@ -81,12 +81,50 @@ ${html}
 `;
 
   // 7. SPA Router for multi-page navigation
+  // All variables MUST be inlined as JSON string literals to avoid runtime "undefined" errors.
+  const pagesJson = JSON.stringify(htmlFiles.map(f => ({ path: f.path, content: f.content })));
+  const cssJson = JSON.stringify(combinedCss);
+  const jsJson = JSON.stringify(combinedJs);
+  const errorCatcherJson = JSON.stringify(errorCatcher);
+
   const spaRouter = hasMultiplePages ? `
 // --- Lyra SPA Router ---
 (function() {
-  var pages = ${JSON.stringify(htmlFiles.map(f => ({ path: f.path, content: f.content })))};
+  var pages = ${pagesJson};
+  var sharedCss = ${cssJson};
+  var sharedJs = ${jsJson};
+  var errorCatcherCode = ${errorCatcherJson};
   
   window.__LYRA_PAGES__ = pages;
+  
+  function navigateTo(target) {
+    var page = pages.find(function(p) { return p.path === target || p.path.endsWith('/' + target); });
+    if (!page) return;
+    
+    var newHtml = page.content;
+    
+    // Remove external links/scripts
+    newHtml = newHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+    newHtml = newHtml.replace(/<script[^>]*src=["'][^"']*["'][^>]*>\\s*<\\/script>/gi, '');
+    
+    // Inject shared CSS before </head>
+    if (newHtml.indexOf('</head>') !== -1) {
+      newHtml = newHtml.replace('</head>', '<style>' + sharedCss + '</style></head>');
+    }
+    
+    // Inject shared JS + error catcher + router before </body>
+    var routerCode = '(' + navigateTo.toString() + ')'; // self-referencing for re-injection
+    var scriptTag = '<script>' + sharedJs + '\\n' + errorCatcherCode + '\\n' + routerCode + '</scr' + 'ipt>';
+    if (newHtml.indexOf('</body>') !== -1) {
+      newHtml = newHtml.replace('</body>', scriptTag + '</body>');
+    }
+    
+    document.open();
+    document.write(newHtml);
+    document.close();
+    
+    try { window.parent.postMessage({ type: 'lyra-navigate', path: target }, '*'); } catch(e) {}
+  }
   
   // Intercept all link clicks
   document.addEventListener('click', function(e) {
@@ -94,51 +132,15 @@ ${html}
     if (!link) return;
     var href = link.getAttribute('href');
     if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:')) return;
-    
-    // Normalize: remove leading ./
     var target = href.replace(/^\\.\\//, '');
-    
-    // Check if target page exists
     var page = pages.find(function(p) { return p.path === target || p.path.endsWith('/' + target); });
     if (page) {
       e.preventDefault();
-      window.__LYRA_NAVIGATE__(target);
+      navigateTo(target);
     }
   });
   
-  window.__LYRA_NAVIGATE__ = function(target) {
-    var page = pages.find(function(p) { return p.path === target || p.path.endsWith('/' + target); });
-    if (!page) return;
-    
-    // Replace entire document
-    var newHtml = page.content;
-    
-    // Extract CSS and JS from new page and inline them
-    var css = ${JSON.stringify(combinedCss)};
-    var js = ${JSON.stringify(combinedJs)};
-    
-    // Remove external links/scripts from new page
-    newHtml = newHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
-    newHtml = newHtml.replace(/<script[^>]*src=["'][^"']*["'][^>]*>\\s*<\\/script>/gi, '');
-    
-    // Inject CSS before </head>
-    if (newHtml.indexOf('</head>') !== -1) {
-      newHtml = newHtml.replace('</head>', '<style>' + css + '</style></head>');
-    }
-    
-    // Inject JS + router before </body>
-    var routerScript = document.currentScript ? document.currentScript.textContent : '';
-    if (newHtml.indexOf('</body>') !== -1) {
-      newHtml = newHtml.replace('</body>', '<script>' + js + '\\n' + errorCatcherScript + '\\n' + routerScript + '</script></body>');
-    }
-    
-    document.open();
-    document.write(newHtml);
-    document.close();
-    
-    // Notify parent
-    try { window.parent.postMessage({ type: 'lyra-navigate', path: target }, '*'); } catch(e) {}
-  };
+  window.__LYRA_NAVIGATE__ = navigateTo;
 })();
 // --- End SPA Router ---
 ` : "";
