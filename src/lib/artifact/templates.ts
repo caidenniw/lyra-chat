@@ -81,24 +81,22 @@ document.addEventListener('DOMContentLoaded', () => {
 2. Gunakan z-index untuk layering — pastikan elemen interaktif punya z-index lebih tinggi.
 3. Tombol dan elemen klik WAJIB punya cursor: pointer dan ukuran minimal 44x44px.
 
-### Untuk JavaScript:
-1. Gunakan EVENT DELEGATION — attach event listener ke document atau parent stabil, bukan ke elemen spesifik yang mungkin belum ada di DOM:
-   document.addEventListener('click', (e) => {
-     const btn = e.target.closest('.btn-start');
-     if (!btn) return;
-     // handler...
+### Untuk JavaScript & Interaksi (PENTING):
+1. Tulis kode JS yang SEDERHANA dan VALID. Jangan buat event delegation kompleks jika tidak perlu.
+2. Gunakan `document.querySelectorAll()` lalu loop dengan `.forEach()` untuk menambahkan event listener ke elemen (misal tombol).
+3. Karena script dimuat di akhir body, elemen sudah ada di DOM. Tidak perlu `DOMContentLoaded`. Langsung saja:
+   ```javascript
+   // Inisialisasi awal
+   const btns = document.querySelectorAll('.my-btn');
+   btns.forEach(btn => {
+     btn.addEventListener('click', () => { /* aksi */ });
    });
-2. Jangan gunakan onclick= atau inline event handler di HTML.
-3. Untuk game Canvas: event listener attach ke document, bukan ke canvas.
-4. Setiap klik/tap handler harus handle kedua event: click (mouse) dan touchstart (mobile):
-   'click touchstart'
-5. Jangan gunakan DOMContentLoaded — cukup letakkan script di akhir body.
-   Jika tetap pakai, gunakan: if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
-
-### Untuk Multiple Screen/State:
-1. Gunakan class switching (active/hidden) untuk navigasi antar screen.
-2. Saat screen berubah: class active pindah, jangan manipulasi display langsung.
-3. Pastikan hanya SATU screen yang aktif dalam satu waktu.
+   ```
+4. Untuk Multiple Screen/SPA Vanilla:
+   - Simpan data tampilan di variabel array/object.
+   - Buat fungsi `renderPage(pageName)` yang membersihkan (innerHTML = '') dan mengisi ulang parent container utama dengan data baru.
+   - Setiap kali `renderPage` dipanggil, INGAT untuk menempelkan ulang (re-attach) event listener ke tombol-tombol yang baru saja dirender!
+5. Jangan gunakan sintaks aneh atau event ganda yang salah (seperti `addEventListener('click touchstart')` ← INI ERROR). Cukup gunakan `click`.
 
 ## FORMAT SCRIPT & LINK TAG (WAJIB)
 Gunakan format persis ini agar preview berfungsi:

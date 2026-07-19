@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/atom-one-dark.css';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
-import { buildPreviewHtmlWithBlobs } from '../../lib/artifact/extractor';
+import { buildPreviewHtml } from '../../lib/artifact/extractor';
 import { FileTree } from './FileTree';
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
@@ -57,37 +57,6 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     URL.revokeObjectURL(url);
   }, [files, artifact.title]);
 
-  // Manage Blob URLs for external files in State so it triggers re-render
-  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
-
-  // Generate Blob URLs whenever files change
-  useEffect(() => {
-    const newUrlMap: Record<string, string> = {};
-
-    files.forEach(file => {
-      // Don't blob the main index.html (handled separately)
-      if (file.path === 'index.html' || file.path.endsWith('/index.html')) return;
-
-      const ext = file.path.split('.').pop()?.toLowerCase();
-      let mimeType = 'text/plain';
-      if (ext === 'css') mimeType = 'text/css';
-      else if (ext === 'js' || ext === 'mjs') mimeType = 'application/javascript';
-      else if (ext === 'json') mimeType = 'application/json';
-      else if (ext === 'svg') mimeType = 'image/svg+xml';
-      else if (ext === 'html') mimeType = 'text/html';
-
-      const blob = new Blob([file.content], { type: mimeType });
-      newUrlMap[file.path] = URL.createObjectURL(blob);
-    });
-
-    setBlobUrls(newUrlMap);
-
-    // Cleanup on unmount or file change
-    return () => {
-      Object.values(newUrlMap).forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [files]);
-
   // Build combined HTML for preview
   const safeCode = useMemo(() => {
     let code: string;
@@ -105,25 +74,16 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 </html>`;
       }
     } else {
-      code = buildPreviewHtmlWithBlobs(files, blobUrls);
+      code = buildPreviewHtml(files);
     }
     return code;
-  }, [files, blobUrls]);
+  }, [files]);
 
-  // Convert HTML to a Blob URL instead of a data: URL.
-  // This is CRUCIAL because Blob URLs share the same origin as the parent window,
-  // allowing the iframe to successfully load the CSS and JS Blob URLs we injected.
-  // A data: URL has an opaque origin and would block blob: resources due to CORS.
-  const [dataUrl, setDataUrl] = useState<string>('');
-
-  useEffect(() => {
-    const blob = new Blob([safeCode], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    setDataUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
+  // Encode HTML to data: URL directly.
+  // Since all CSS and JS are strictly inline now, CORS opaque origin (data: URI)
+  // is perfectly fine. No blob URLs needed.
+  const dataUrl = useMemo(() => {
+    return 'data:text/html;charset=utf-8,' + encodeURIComponent(safeCode);
   }, [safeCode]);
 
   // Highlight.js: auto-detect language from current file
@@ -182,7 +142,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   const handleRefresh = useCallback(() => {
     const iframe = iframeRef.current;
-    if (iframe && dataUrl) {
+    if (iframe) {
       iframe.src = 'about:blank';
       requestAnimationFrame(() => { iframe.src = dataUrl; });
     }
@@ -372,7 +332,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
             >
               <iframe
                 ref={iframeRef}
-                src={dataUrl || 'about:blank'}
+                src={dataUrl}
                 title={artifact.title || 'Website Preview'}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 className="w-full h-full border-0"
@@ -390,7 +350,7 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
           >
             <iframe
               ref={iframeRef}
-              src={dataUrl || 'about:blank'}
+              src={dataUrl}
               title={artifact.title || 'Website Preview'}
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               className="w-full h-full border-0"
