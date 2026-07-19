@@ -10,7 +10,6 @@ import { EmptyState } from '../chat/EmptyState';
 import { ArtifactPreview } from '../artifact/ArtifactPreview';
 import { useChat } from '../../hooks/useChat';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
-import { buildConversationArtifact, hasAnyArtifactMarker } from '../../lib/artifact/extractor';
 import { PrivacyPolicy } from '../PrivacyPolicy';
 import {
   getConversations,
@@ -66,7 +65,7 @@ export function AppShell() {
   const [selectedModel, setSelectedModel] = useState('deepseek-v4-flash-free');
   const [isLoading, setIsLoading] = useState(false);
   const [sandboxMode, setSandboxMode] = useState(false);
-  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactBlock | null>(null);
   const [panelWidth, setPanelWidth] = useState(50); // percentage for preview panel
   const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(new Set());
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -85,42 +84,6 @@ export function AppShell() {
     () => messages.filter(m => m.conversationId === activeConversationId),
     [messages, activeConversationId]
   );
-
-  // Merged project state of the active conversation (all artifact files, with
-  // partial updates applied). During streaming, completed files stream in live.
-  // Reasoning models (DeepSeek etc.) may write the artifact into the reasoning
-  // channel first — read both channels so the live preview works there too.
-  const streamingMsg = streamingMessageId ? activeMessages.find(m => m.id === streamingMessageId) : undefined;
-  const artifactStreaming = isStreaming && !!streamingMsg &&
-    (hasAnyArtifactMarker(streamingMsg.content) || hasAnyArtifactMarker(streamingMsg.reasoningContent || ''));
-  const conversationArtifact = useMemo<ArtifactBlock | null>(() => {
-    const contents: string[] = [];
-    for (const m of activeMessages) {
-      if (m.role !== 'assistant' || m.isError) continue;
-      // Reasoning first, content after — content versions override in the merge
-      if (m.reasoningContent && hasAnyArtifactMarker(m.reasoningContent)) {
-        contents.push(m.reasoningContent);
-      }
-      if (m.content) {
-        contents.push(m.content);
-      }
-    }
-    return buildConversationArtifact(contents, isStreaming);
-  }, [activeMessages, isStreaming]);
-
-  // Auto-open the preview panel when the AI starts writing an artifact
-  const autoOpenedForRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (artifactStreaming && streamingMessageId && autoOpenedForRef.current !== streamingMessageId) {
-      autoOpenedForRef.current = streamingMessageId;
-      setArtifactPanelOpen(true);
-    }
-  }, [artifactStreaming, streamingMessageId]);
-
-  // Close the panel when switching conversations
-  useEffect(() => {
-    setArtifactPanelOpen(false);
-  }, [activeConversationId]);
 
   // Load conversations, messages, and projects from Supabase when user changes
   useEffect(() => {
@@ -317,20 +280,14 @@ export function AppShell() {
   };
 
   const hasMessages = activeMessages.length > 0;
-  const showArtifactPanel = artifactPanelOpen && !!conversationArtifact;
 
-  const handleShowArtifact = useCallback((_artifact: ArtifactBlock) => {
-    // The panel always shows the merged, latest project state
-    setArtifactPanelOpen(true);
+  const handleShowArtifact = useCallback((artifact: ArtifactBlock) => {
+    setActiveArtifact(artifact);
   }, []);
 
   const handleCloseArtifact = useCallback(() => {
-    setArtifactPanelOpen(false);
+    setActiveArtifact(null);
   }, []);
-
-  const handleFixError = useCallback((text: string) => {
-    handleSendMessage(text);
-  }, [handleSendMessage]);
 
   const handleExportChat = useCallback((id: string) => {
     const conv = conversations.find(c => c.id === id);
@@ -513,8 +470,8 @@ export function AppShell() {
       <main ref={mainRef} className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         {/* Chat Panel */}
         <div
-          className={`flex flex-col min-w-0 min-h-0 overflow-hidden ${showArtifactPanel ? 'hidden md:flex' : 'flex-1'}`}
-          style={showArtifactPanel ? { width: `${100 - panelWidth}%` } : undefined}
+          className={`flex flex-col min-w-0 min-h-0 overflow-hidden ${activeArtifact ? 'hidden md:flex' : 'flex-1'}`}
+          style={activeArtifact ? { width: `${100 - panelWidth}%` } : undefined}
         >
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center text-text-muted">
@@ -542,7 +499,7 @@ export function AppShell() {
         </div>
 
         {/* Drag Handle — resizable divider */}
-        {showArtifactPanel && (
+        {activeArtifact && (
           <div
             onMouseDown={handleDragStart}
             className="hidden md:flex w-1.5 h-full cursor-col-resize items-center justify-center
@@ -553,23 +510,18 @@ export function AppShell() {
         )}
 
         {/* Artifact Preview Panel — Desktop */}
-        {showArtifactPanel && (
+        {activeArtifact && (
           <div
             className="hidden md:block h-full overflow-hidden"
             style={{ width: `${panelWidth}%` }}
           >
-            <ArtifactPreview
-              artifact={conversationArtifact!}
-              onClose={handleCloseArtifact}
-              onFixError={handleFixError}
-              isStreaming={artifactStreaming}
-            />
+            <ArtifactPreview artifact={activeArtifact} onClose={handleCloseArtifact} />
           </div>
         )}
 
         {/* Mobile Artifact Overlay */}
         <AnimatePresence>
-          {showArtifactPanel && (
+          {activeArtifact && (
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -577,12 +529,7 @@ export function AppShell() {
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="fixed inset-0 z-50 md:hidden"
             >
-              <ArtifactPreview
-                artifact={conversationArtifact!}
-                onClose={handleCloseArtifact}
-                onFixError={handleFixError}
-                isStreaming={artifactStreaming}
-              />
+              <ArtifactPreview artifact={activeArtifact} onClose={handleCloseArtifact} />
             </motion.div>
           )}
         </AnimatePresence>
