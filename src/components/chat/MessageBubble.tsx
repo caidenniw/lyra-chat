@@ -2,7 +2,7 @@ import { Copy, Check, ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronRight, Rot
 import { useState, memo, useMemo } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ArtifactBanner } from '../artifact/ArtifactBanner';
-import { extractArtifacts, hasArtifact, hasPartialArtifact, stripArtifacts } from '../../lib/artifact/extractor';
+import { artifactMarkerIndex, extractArtifacts, extractFilesLoose, hasAnyArtifactMarker, hasArtifact, hasPartialArtifact, stripArtifacts } from '../../lib/artifact/extractor';
 import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import type { Message } from '../layout/AppShell';
 
@@ -20,21 +20,33 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
   const isEmpty = !message.content && !message.reasoningContent && isStreaming;
-  const hasReasoning = !!message.reasoningContent;
 
 
-  // Extract artifacts from assistant messages (only when not streaming)
+  // Extract artifacts from assistant messages (only when not streaming).
+  // Falls back to the reasoning channel when the model left the code there.
   const artifacts = useMemo(() => {
     if (isUser || isSystem || isStreaming) return [];
-    if (!hasArtifact(message.content)) return [];
-    return extractArtifacts(message.content);
-  }, [message.content, isUser, isSystem, isStreaming]);
+    if (hasArtifact(message.content)) return extractArtifacts(message.content);
+    if (message.reasoningContent && hasArtifact(message.reasoningContent)) {
+      return extractArtifacts(message.reasoningContent);
+    }
+    return [];
+  }, [message.content, message.reasoningContent, isUser, isSystem, isStreaming]);
 
-  // Check if artifact is being generated (streaming + contains start marker)
+  // Check if artifact is being generated (streaming + contains start marker).
+  // Reasoning models may write the code into the thinking channel first.
   const isArtifactStreaming = useMemo(() => {
     if (!isStreaming || isUser || isSystem) return false;
-    return message.content.includes('<!-- lyra-artifact');
-  }, [message.content, isStreaming, isUser, isSystem]);
+    return hasAnyArtifactMarker(message.content)
+      || hasAnyArtifactMarker(message.reasoningContent || '');
+  }, [message.content, message.reasoningContent, isStreaming, isUser, isSystem]);
+
+  // Reasoning shown to the user — never display raw artifact code in the
+  // thinking panel (reasoning models draft the whole website there).
+  const displayReasoning = useMemo(() => {
+    if (!message.reasoningContent) return '';
+    return stripArtifacts(message.reasoningContent);
+  }, [message.reasoningContent]);
 
   // Check if artifact was truncated (start marker exists but no end marker, and NOT streaming)
   const isPartialArtifact = useMemo(() => {
@@ -46,8 +58,8 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
   const displayContent = useMemo(() => {
     const content = message.content;
     if (isArtifactStreaming) {
-      // During streaming: remove everything from <!-- lyra-artifact onwards
-      const startIdx = content.indexOf('<!-- lyra-artifact');
+      // During streaming: remove everything from the real artifact marker onwards
+      const startIdx = artifactMarkerIndex(content);
       if (startIdx !== -1) {
         return content.substring(0, startIdx).trim();
       }
@@ -71,6 +83,28 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
     }
     return stripArtifacts(content);
   }, [message.content, artifacts, isArtifactStreaming, isPartialArtifact, isStreaming]);
+
+  // Fallback summary when the model finishes an artifact without writing any
+  // explanation text — guarantees the user always gets a conclusion.
+  const autoSummary = useMemo(() => {
+    if (isStreaming || artifacts.length === 0 || displayContent.trim()) return '';
+    const source = hasArtifact(message.content) ? message.content : (message.reasoningContent || '');
+    const { files: parsed } = extractFilesLoose(source, false);
+    const created = parsed.filter(f => f.action === 'create').map(f => f.path);
+    const updated = parsed.filter(f => f.action === 'update').map(f => f.path);
+    const deleted = parsed.filter(f => f.action === 'delete').map(f => f.path);
+    const title = artifacts[0].title || 'Website';
+    const parts: string[] = [];
+    if (updated.length > 0 && created.length === 0) {
+      parts.push(`Revisi **${title}** selesai — ${updated.length} file diperbarui: ${updated.join(', ')}.`);
+    } else {
+      const all = [...created, ...updated];
+      parts.push(`Website **${title}** selesai dibuat — ${all.length} file: ${all.join(', ')}.`);
+    }
+    if (deleted.length > 0) parts.push(`File dihapus: ${deleted.join(', ')}.`);
+    parts.push('Lihat hasilnya di panel preview.');
+    return parts.join(' ');
+  }, [isStreaming, artifacts, displayContent, message.content, message.reasoningContent]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -137,7 +171,7 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
             /* AI — markdown with code blocks */
             <div className={`text-sm leading-relaxed ${isStreaming ? 'animate-content-fade' : ''}`}>
               {/* Reasoning / Thinking section — collapsible */}
-              {hasReasoning && (
+              {!!displayReasoning && (
                 <div className="mb-2 last:mb-0">
                   <button
                     onClick={() => setReasoningOpen(!reasoningOpen)}
@@ -151,12 +185,12 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
                   </button>
                   {reasoningOpen && (
                     <div className="text-[11px] md:text-xs text-text-dim/70 italic border-l-2 border-primary/20 pl-3 py-1 max-h-48 overflow-y-auto whitespace-pre-wrap">
-                      {message.reasoningContent}
+                      {displayReasoning}
                     </div>
                   )}
                 </div>
               )}
-              <MarkdownRenderer content={displayContent} streaming={isStreaming} />
+              <MarkdownRenderer content={displayContent || autoSummary} streaming={isStreaming} />
               {/* Artifact building indicator during streaming */}
               {isArtifactStreaming && (
                 <div className="mt-3 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/15 animate-message-in">
@@ -165,12 +199,12 @@ export const MessageBubble = memo(function MessageBubble({ message, isStreaming 
                   </div>
                   <div>
                     <div className="text-xs font-medium text-primary">Membuat website...</div>
-                    <div className="text-[10px] text-text-dim">Preview akan muncul setelah selesai</div>
+                    <div className="text-[10px] text-text-dim">Preview live tampil di panel</div>
                   </div>
                 </div>
               )}
               {/* Partial artifact — koneksi terputus */}
-              {isPartialArtifact && (
+              {isPartialArtifact && onContinue && (
                 <div className="mt-3 flex flex-col gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 animate-message-in">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">

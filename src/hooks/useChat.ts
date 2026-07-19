@@ -3,6 +3,13 @@ import { isMultimodalModel, getMultimodalModel, getModelById } from '../lib/ai/m
 import type { Message, AttachedFile } from '../components/layout/AppShell';
 import { saveMessages } from '../services/chat';
 import { ARTIFACT_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../lib/artifact/templates';
+import {
+  buildConversationArtifact,
+  extractFilesLoose,
+  hasAnyArtifactMarker,
+  serializeFilesForContext,
+  stripArtifacts,
+} from '../lib/artifact/extractor';
 
 interface UseChatOptions {
   model: string;
@@ -308,26 +315,43 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
     setStreamingMessageId(assistantMsg.id);
 
     // Build API messages
-    const apiMessages: Array<{ role: string; content: string }> = [
-      {
-        role: 'system',
-        content: sandboxMode ? ARTIFACT_SYSTEM_PROMPT : DEFAULT_SYSTEM_PROMPT,
-      },
-    ];
+    const conversationMessages = messages.filter(m => m.conversationId === conversationId);
 
-    if (files && files.length > 0) {
-      console.log('[useChat] Files received:', files.length, files.map(f => ({name: f.name, hasContent: !!f.content, contentLen: f.content?.length})));
-      const textFiles = files.filter(f => f.content);
-      console.log('[useChat] Text files with content:', textFiles.length);
+    let systemContent = sandboxMode ? ARTIFACT_SYSTEM_PROMPT : DEFAULT_SYSTEM_PROMPT;
+
+    if (sandboxMode) {
+      // Include the current merged project state so the AI can do partial edits
+      // (only changed files) instead of regenerating everything.
+      const assistantContents = conversationMessages
+        .filter(m => m.role === 'assistant' && !m.isError)
+        .map(m => m.content);
+      const currentArtifact = buildConversationArtifact(assistantContents);
+      if (currentArtifact?.files && currentArtifact.files.length > 0) {
+        systemContent += `\n\n## KODE PROJECT SAAT INI\n\nProject "${currentArtifact.title || 'Website'}" sudah ada. Saat merevisi, keluarkan HANYA file yang berubah (action="update").\n\n${serializeFilesForContext(currentArtifact.files)}`;
+      }
     }
 
-    const historyMessages = messages
-      .filter(m => m.conversationId === conversationId)
+    const apiMessages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: systemContent },
+    ];
+
+    const historyMessages = conversationMessages
       .slice(-10)
-      .map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
+      .map(m => {
+        // In website mode the current project code is already provided via the
+        // system message — replace artifact code in history with a short note
+        // to keep the context window small.
+        if (sandboxMode && m.role === 'assistant' && hasAnyArtifactMarker(m.content)) {
+          const { files: parsed } = extractFilesLoose(m.content, true);
+          const paths = parsed.map(f => (f.action === 'delete' ? `${f.path} (dihapus)` : f.path));
+          const note = paths.length > 0
+            ? `[Artifact: mengubah file ${paths.join(', ')} — kode terbaru ada di KODE PROJECT SAAT INI]`
+            : '[Artifact kosong]';
+          const stripped = stripArtifacts(m.content);
+          return { role: m.role, content: stripped ? `${stripped}\n\n${note}` : note };
+        }
+        return { role: m.role, content: m.content };
+      });
     apiMessages.push(...historyMessages);
 
     let userContent = content;
@@ -365,10 +389,13 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
       finalUserMessage = { role: 'user', content: JSON.stringify(contentParts) };
     } else {
       const isContinuing = userContent.trim().toLowerCase().match(/^(lanjut|lanjutkan|sambung|continue)(\s.*)?$/);
+      const continueInstruction = sandboxMode
+        ? '[INSTRUKSI SISTEM: Respons sebelumnya terpotong. Lihat KODE PROJECT SAAT INI — keluarkan artifact berisi HANYA file yang belum selesai atau belum dibuat (action="update"). JANGAN tulis ulang file yang sudah ada.]'
+        : '[INSTRUKSI SISTEM: Lanjutkan respons kamu sebelumnya TEPAT dari karakter atau baris terakhir yang terpotong. JANGAN mengulang kode atau penjelasan dari awal. Langsung sambung saja.]';
       finalUserMessage = {
         role: 'user',
         content: isContinuing
-          ? `${userContent}\n\n[INSTRUKSI SISTEM: Lanjutkan respons kamu sebelumnya TEPAT dari karakter atau baris terakhir yang terpotong. JANGAN mengulang kode atau penjelasan dari awal. Langsung sambung saja.]`
+          ? `${userContent}\n\n${continueInstruction}`
           : userContent
       };
     }
@@ -438,15 +465,22 @@ export function useChat({ model, userId, sandboxMode, onModelChange }: UseChatOp
 
     const conversationId = lastAssistantMsg.conversationId;
 
-    // Remove the partial artifact message from state
-    setMessages(prev => prev.filter(m => m.id !== lastAssistantMsg.id));
+    // Files with a closing marker are already saved in the merged project state
+    // (sent via system context) — only ask for what's missing or unfinished.
+    const { files: parsed } = extractFilesLoose(lastAssistantMsg.content, true);
+    const completedPaths = parsed.filter(f => !f.partial).map(f => f.path);
+    const partialFile = parsed.find(f => f.partial);
 
-    // Send a new message that tells AI to continue the partial code
-    // Include the partial code as context
-    const partialCode = lastAssistantMsg.content;
-    const continueContent = `Lanjutkan pembuatan website dari kode sebelumnya yang terpotong. Berikut kode yang sudah ada:\n\n${partialCode}\n\nLanjutkan dari bagian terakhir yang terpotong. JANGAN mengulang dari awal. Tulis SELURUH kode lengkap dari awal sampai akhir dalam satu artifact block.`;
-    
-    sendMessage(continueContent, undefined, conversationId);
+    const parts: string[] = ['Respons kamu sebelumnya terpotong.'];
+    if (completedPaths.length > 0) {
+      parts.push(`File yang sudah TERSIMPAN lengkap: ${completedPaths.join(', ')} — JANGAN tulis ulang file-file ini.`);
+    }
+    if (partialFile) {
+      parts.push(`File "${partialFile.path}" belum selesai — tulis ulang file itu secara LENGKAP dari awal sampai akhir.`);
+    }
+    parts.push('Keluarkan artifact baru berisi HANYA file yang belum selesai atau belum sempat dibuat (pakai action="update").');
+
+    sendMessage(parts.join(' '), undefined, conversationId);
   }, [isStreaming, messages, sendMessage]);
 
   return { sendMessage, retryLastMessage, continuePartialArtifact, stopStreaming, isStreaming, isReasoning, streamingMessageId, messages, setMessages };

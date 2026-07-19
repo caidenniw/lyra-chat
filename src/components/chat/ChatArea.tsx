@@ -120,13 +120,13 @@ export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, on
             </button>
           </div>
         )}
-        {messages.map((msg) => (
+        {messages.map((msg, idx) => (
           <MessageBubble
             key={msg.id}
             message={msg}
             isStreaming={streamingMessageId === msg.id}
             onRetry={msg.isError ? onRetry : undefined}
-            onContinue={hasPartialArtifact(msg.content) ? onContinue : undefined}
+            onContinue={idx === messages.length - 1 && hasPartialArtifact(msg.content) ? onContinue : undefined}
             onShowArtifact={onShowArtifact}
           />
         ))}
