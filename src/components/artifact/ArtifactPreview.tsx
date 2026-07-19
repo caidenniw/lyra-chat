@@ -80,15 +80,12 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 
   // Convert Lyra files array to Sandpack files object
   const sandpackFiles = useMemo(() => {
-    const spFiles: Record<string, string> = {
-      // Kosongkan index.js agar template vanilla tidak menimpa div#app
-      // dan membiarkan index.html asli dari AI untuk dirender apa adanya.
-      '/index.js': ''
-    };
+    const spFiles: Record<string, any> = {};
     
     // Check if we need to wrap a bare string into HTML
     if (files.length === 1 && !files[0].content.trim().toLowerCase().startsWith('<!doctype') && !files[0].content.trim().toLowerCase().startsWith('<html')) {
-      spFiles['/index.html'] = `<!DOCTYPE html>
+      spFiles['/index.html'] = {
+        code: `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -98,12 +95,13 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
 <body>
 ${files[0].content}
 </body>
-</html>`;
+</html>`
+      };
     } else {
       files.forEach(f => {
         // Sandpack expects absolute paths (e.g. '/css/style.css')
         const path = f.path.startsWith('/') ? f.path : `/${f.path}`;
-        spFiles[path] = f.content;
+        spFiles[path] = { code: f.content };
       });
     }
 
@@ -160,14 +158,18 @@ ${files[0].content}
 
   return (
     <SandpackProvider 
-      template="vanilla" 
+      template="static" 
       theme="dark" 
       files={sandpackFiles}
+      customSetup={{
+        environment: "static"
+      }}
       options={{
         classes: {
-          "sp-layout": "h-full w-full border-0 bg-transparent rounded-none flex flex-col flex-1",
-          "sp-preview": "h-full w-full flex-1",
-          "sp-preview-iframe": "w-full h-full min-h-full border-0"
+          "sp-layout": "flex-1 h-full w-full border-0 bg-transparent !rounded-none flex flex-col",
+          "sp-preview": "flex-1 h-full w-full",
+          "sp-preview-iframe": "flex-1 w-full h-full min-h-full border-0",
+          "sp-preview-container": "flex-1 w-full h-full flex flex-col"
         }
       }}
     >
@@ -319,17 +321,18 @@ ${files[0].content}
             </div>
 
             {/* Preview side */}
-            <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
+            <div className="flex-1 flex justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
               <div
-                className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
-                style={{ width: '100%', height: '100%', maxWidth: DEVICE_WIDTHS[device] }}
+                className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col w-full h-full"
+                style={{ maxWidth: DEVICE_WIDTHS[device] }}
               >
-                <SandpackLayout style={{ flex: 1, minHeight: 0, margin: 0, padding: 0 }}>
+                <SandpackLayout className="flex-1 h-full w-full m-0 p-0 !rounded-none">
                   <SandpackPreview
                     showOpenInCodeSandbox={false}
                     showRefreshButton={false}
                     showNavigator={shouldShowNavigator}
-                    style={{ height: '100%' }}
+                    className="h-full w-full flex-1"
+                    style={{ height: '100%', flex: 1 }}
                   />
                 </SandpackLayout>
               </div>
@@ -337,17 +340,18 @@ ${files[0].content}
           </div>
         ) : (
           /* Preview only (full screen) */
-          <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0]">
+          <div className="flex-1 flex justify-center p-3 overflow-hidden bg-[#e8e5e0]">
             <div
-              className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
-              style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%', height: '100%' }}
+              className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col w-full h-full"
+              style={{ maxWidth: DEVICE_WIDTHS[device] }}
             >
-              <SandpackLayout style={{ flex: 1, minHeight: 0, margin: 0, padding: 0 }}>
+              <SandpackLayout className="flex-1 h-full w-full m-0 p-0 !rounded-none">
                 <SandpackPreview
                   showOpenInCodeSandbox={false}
                   showRefreshButton={false}
                   showNavigator={shouldShowNavigator}
-                  style={{ height: '100%' }}
+                  className="h-full w-full flex-1"
+                  style={{ height: '100%', flex: 1 }}
                 />
               </SandpackLayout>
             </div>
