@@ -46,22 +46,22 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     return buildPreviewHtml(files);
   }, [files]);
 
-  // Encode to data URL for iframe src
-  const dataUrl = useMemo(() => {
-    return "data:text/html;charset=utf-8," + encodeURIComponent(previewHtml);
-  }, [previewHtml]);
+  // Build the full HTML for iframe srcdoc attribute
+    const srcDocHtml = useMemo(() => {
+      return previewHtml;
+    }, [previewHtml]);
 
   // Refresh iframe
   const handleRefresh = useCallback(() => {
-    const iframe = iframeRef.current;
-    if (iframe) {
-      iframe.src = "about:blank";
-      requestAnimationFrame(() => {
-        iframe.src = dataUrl;
-      });
-      setPreviewErrors([]);
-    }
-  }, [dataUrl]);
+      const iframe = iframeRef.current;
+      if (iframe) {
+        iframe.srcdoc = "";
+              requestAnimationFrame(() => {
+                iframe.srcdoc = srcDocHtml;
+        });
+        setPreviewErrors([]);
+      }
+    }, [srcDocHtml]);
 
   const handleBack = useCallback(() => {
       if (navIndex > 0) {
@@ -437,31 +437,31 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
               style={{ maxWidth: DEVICE_WIDTHS[device] }}
             >
               <iframe
-                ref={iframeRef}
-                src={dataUrl}
-                title={artifact.title || "Website Preview"}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                className="w-full h-full border-0"
-                style={{ minHeight: "100%" }}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Preview only (full screen) */
-        <div className="flex-1 flex justify-center p-3 overflow-hidden bg-[#e8e5e0]">
-          <div
-            className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out w-full h-full"
-            style={{ maxWidth: DEVICE_WIDTHS[device] }}
-          >
-            <iframe
-              ref={iframeRef}
-              src={dataUrl}
-              title={artifact.title || "Website Preview"}
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              className="w-full h-full border-0"
-              style={{ minHeight: "100%" }}
-            />
+                              ref={iframeRef}
+                              srcDoc={srcDocHtml}
+                              title={artifact.title || "Website Preview"}
+                              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                              className="w-full h-full border-0"
+                              style={{ minHeight: "100%" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Preview only (full screen) */
+                      <div className="flex-1 flex justify-center p-3 overflow-hidden bg-[#e8e5e0]">
+                        <div
+                          className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out w-full h-full"
+                          style={{ maxWidth: DEVICE_WIDTHS[device] }}
+                        >
+                          <iframe
+                            ref={iframeRef}
+                            srcDoc={srcDocHtml}
+                            title={artifact.title || "Website Preview"}
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            className="w-full h-full border-0"
+                            style={{ minHeight: "100%" }}
+                          />
           </div>
         </div>
       )}
