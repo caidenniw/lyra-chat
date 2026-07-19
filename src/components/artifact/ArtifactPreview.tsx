@@ -161,9 +161,9 @@ ${files[0].content}
       files={sandpackFiles}
       options={{
         classes: {
-          "sp-layout": "h-full border-0 bg-transparent rounded-none",
-          "sp-preview": "h-full bg-white",
-          "sp-preview-iframe": "min-h-full"
+          "sp-layout": "h-full w-full border-0 bg-transparent rounded-none flex flex-col flex-1",
+          "sp-preview": "h-full w-full flex-1",
+          "sp-preview-iframe": "w-full h-full min-h-full border-0"
         }
       }}
     >
@@ -317,14 +317,15 @@ ${files[0].content}
             {/* Preview side */}
             <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
               <div
-                className="h-full bg-white rounded-xl shadow-medium overflow-hidden transition-all duration-300 ease-out"
+                className="h-full bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
                 style={{ width: '100%', maxWidth: DEVICE_WIDTHS[device] }}
               >
-                <SandpackLayout>
+                <SandpackLayout style={{ flex: 1, minHeight: 0 }}>
                   <SandpackPreview
                     showOpenInCodeSandbox={false}
                     showRefreshButton={false}
                     showNavigator={false}
+                    style={{ height: '100%' }}
                   />
                 </SandpackLayout>
               </div>
@@ -334,14 +335,15 @@ ${files[0].content}
           /* Preview only (full screen) */
           <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0]">
             <div
-              className="h-full bg-white rounded-xl shadow-medium overflow-hidden transition-all duration-300 ease-out"
+              className="h-full bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
               style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
             >
-              <SandpackLayout>
+              <SandpackLayout style={{ flex: 1, minHeight: 0 }}>
                 <SandpackPreview
                   showOpenInCodeSandbox={false}
                   showRefreshButton={false}
                   showNavigator={false}
+                  style={{ height: '100%' }}
                 />
               </SandpackLayout>
             </div>
