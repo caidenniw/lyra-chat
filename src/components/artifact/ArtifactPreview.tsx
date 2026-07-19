@@ -322,17 +322,17 @@ ${files[0].content}
             </div>
 
             {/* Preview side */}
-            <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
+            <div className="flex-1 flex items-center justify-center p-3 overflow-hidden bg-[#e8e5e0] min-w-0">
               <div
-                className="h-full bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
-                style={{ width: '100%', maxWidth: DEVICE_WIDTHS[device] }}
+                className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
+                style={{ width: '100%', height: '100%', maxWidth: DEVICE_WIDTHS[device] }}
               >
-                <SandpackLayout style={{ flex: 1, minHeight: 0 }}>
+                <SandpackLayout style={{ flex: 1, height: '100%', minHeight: 0, margin: 0, padding: 0 }}>
                   <SandpackPreview
                     showOpenInCodeSandbox={false}
                     showRefreshButton={false}
                     showNavigator={false}
-                    style={{ height: '100%' }}
+                    style={{ height: '100%', minHeight: '100vh' }}
                   />
                 </SandpackLayout>
               </div>
@@ -340,17 +340,17 @@ ${files[0].content}
           </div>
         ) : (
           /* Preview only (full screen) */
-          <div className="flex-1 flex items-start justify-center p-3 overflow-hidden bg-[#e8e5e0]">
+          <div className="flex-1 flex items-center justify-center p-3 overflow-hidden bg-[#e8e5e0]">
             <div
-              className="h-full bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
-              style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%' }}
+              className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col"
+              style={{ width: DEVICE_WIDTHS[device], maxWidth: '100%', height: '100%' }}
             >
-              <SandpackLayout style={{ flex: 1, minHeight: 0 }}>
+              <SandpackLayout style={{ flex: 1, height: '100%', minHeight: 0, margin: 0, padding: 0 }}>
                 <SandpackPreview
                   showOpenInCodeSandbox={false}
                   showRefreshButton={false}
                   showNavigator={false}
-                  style={{ height: '100%' }}
+                  style={{ height: '100%', minHeight: '100vh' }}
                 />
               </SandpackLayout>
             </div>
