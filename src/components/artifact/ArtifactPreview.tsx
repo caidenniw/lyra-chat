@@ -7,7 +7,6 @@ import type { ArtifactBlock } from '../../lib/artifact/extractor';
 import { FileTree } from './FileTree';
 import {
   SandpackProvider,
-  SandpackLayout,
   SandpackPreview,
   useSandpack,
 } from "@codesandbox/sandpack-react";
@@ -326,15 +325,13 @@ ${files[0].content}
                 className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col w-full h-full"
                 style={{ maxWidth: DEVICE_WIDTHS[device] }}
               >
-                <SandpackLayout className="flex-1 h-full w-full m-0 p-0 !rounded-none">
-                  <SandpackPreview
-                    showOpenInCodeSandbox={false}
-                    showRefreshButton={false}
-                    showNavigator={shouldShowNavigator}
-                    className="h-full w-full flex-1"
-                    style={{ height: '100%', flex: 1 }}
-                  />
-                </SandpackLayout>
+                <SandpackPreview
+                  showOpenInCodeSandbox={false}
+                  showRefreshButton={false}
+                  showNavigator={shouldShowNavigator}
+                  className="h-full w-full flex-1"
+                  style={{ height: '100%', flex: 1 }}
+                />
               </div>
             </div>
           </div>
@@ -345,15 +342,13 @@ ${files[0].content}
               className="bg-white shadow-medium overflow-hidden transition-all duration-300 ease-out flex flex-col w-full h-full"
               style={{ maxWidth: DEVICE_WIDTHS[device] }}
             >
-              <SandpackLayout className="flex-1 h-full w-full m-0 p-0 !rounded-none">
-                <SandpackPreview
-                  showOpenInCodeSandbox={false}
-                  showRefreshButton={false}
-                  showNavigator={shouldShowNavigator}
-                  className="h-full w-full flex-1"
-                  style={{ height: '100%', flex: 1 }}
-                />
-              </SandpackLayout>
+              <SandpackPreview
+                showOpenInCodeSandbox={false}
+                showRefreshButton={false}
+                showNavigator={shouldShowNavigator}
+                className="h-full w-full flex-1"
+                style={{ height: '100%', flex: 1 }}
+              />
             </div>
           </div>
         )}
