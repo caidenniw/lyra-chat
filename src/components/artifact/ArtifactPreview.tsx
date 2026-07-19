@@ -122,6 +122,22 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
     });
   }, [activeFile]);
 
+  // Listen for errors from iframe (via postMessage)
+  const [previewErrors, setPreviewErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'lyra-error') {
+        setPreviewErrors(prev => {
+          const updated = [`${e.data.count}. ${e.data.message}`, ...prev];
+          return updated.slice(0, 5); // max 5 errors
+        });
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleRefresh = useCallback(() => {
     const iframe = iframeRef.current;
     if (iframe) {
@@ -175,6 +191,26 @@ export function ArtifactPreview({ artifact, onClose }: ArtifactPreviewProps) {
           <span className="text-[11px] text-text-dim mr-2 hidden sm:block truncate max-w-[140px]">
             {showCode ? currentFileName : (artifact.title || 'Preview')}
           </span>
+          {/* Error badge */}
+          {previewErrors.length > 0 && (
+            <div className="relative group">
+              <button
+                title="Ada error JavaScript di preview"
+                className="flex items-center gap-1 px-1.5 py-1 rounded-lg bg-red-500/10 text-red-500 text-[10px] font-medium hover:bg-red-500/20 transition-colors"
+              >
+                <span>&#x26A0;&#xFE0F;</span>
+                <span>{previewErrors.length}</span>
+              </button>
+              <div className="absolute right-0 top-full mt-1 w-64 bg-[#1e1e2e] border border-[#313244] rounded-xl shadow-xl p-2 hidden group-hover:block z-50">
+                <div className="text-[10px] text-red-400 font-medium mb-1 px-1">Preview JavaScript Errors:</div>
+                {previewErrors.map((err, i) => (
+                  <div key={i} className="text-[10px] text-red-300/80 px-1 py-0.5 border-b border-[#313244] last:border-0 truncate">
+                    {err}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <button onClick={handleRefresh} title="Refresh" className="p-1.5 rounded-lg text-text-dim hover:text-text hover:bg-bg-alt transition-colors">
             <RotateCcw size={13} />
           </button>

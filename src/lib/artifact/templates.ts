@@ -71,8 +71,34 @@ document.addEventListener('DOMContentLoaded', () => {
 3. Responsive — pakai mobile-first
 4. Konten realistis (bukan lorem ipsum)
 5. Gunakan Google Fonts untuk tipografi
-6. JS modern (ES6+) — event delegation, arrow functions, dll
+6. JS modern (ES6+) — arrow functions, template literals, dll
 7. Jika proyek sederhana, tetap pisahkan ke 3 file
+
+## ATURAN INTERAKSI (KRITIS — WAJIB BACA)
+
+### Untuk CSS:
+1. JANGAN GUNAKAN pointer-events: none di parent/container yang memiliki child interaktif (tombol, link, input). Jika perlu kontrol klik, gunakan display: none / visibility: hidden atau z-index.
+2. Gunakan z-index untuk layering — pastikan elemen interaktif punya z-index lebih tinggi.
+3. Tombol dan elemen klik WAJIB punya cursor: pointer dan ukuran minimal 44x44px.
+
+### Untuk JavaScript:
+1. Gunakan EVENT DELEGATION — attach event listener ke document atau parent stabil, bukan ke elemen spesifik yang mungkin belum ada di DOM:
+   document.addEventListener('click', (e) => {
+     const btn = e.target.closest('.btn-start');
+     if (!btn) return;
+     // handler...
+   });
+2. Jangan gunakan onclick= atau inline event handler di HTML.
+3. Untuk game Canvas: event listener attach ke document, bukan ke canvas.
+4. Setiap klik/tap handler harus handle kedua event: click (mouse) dan touchstart (mobile):
+   'click touchstart'
+5. Jangan gunakan DOMContentLoaded — cukup letakkan script di akhir body.
+   Jika tetap pakai, gunakan: if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+
+### Untuk Multiple Screen/State:
+1. Gunakan class switching (active/hidden) untuk navigasi antar screen.
+2. Saat screen berubah: class active pindah, jangan manipulasi display langsung.
+3. Pastikan hanya SATU screen yang aktif dalam satu waktu.
 
 ## FORMAT SCRIPT & LINK TAG (WAJIB)
 Gunakan format persis ini agar preview berfungsi:
