@@ -28,10 +28,12 @@ export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, on
     el.scrollTop = el.scrollHeight;
   }, []);
 
-  // Detect user scroll via wheel event (for auto-scroll logic)
+  // Detect user scroll via wheel event (desktop) and touch events (mobile)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    let startY = 0;
 
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY < 0) {
@@ -45,8 +47,35 @@ export function ChatArea({ messages, streamingMessageId, onRetry, onContinue, on
       }
     };
 
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const currentY = e.touches[0].clientY;
+      // If user swipes down on screen (scrolling content up)
+      if (currentY > startY) {
+        isAutoScrollRef.current = false;
+      } else {
+        // If swiping up on screen (scrolling content down)
+        const { scrollTop, scrollHeight, clientHeight } = el;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        if (distanceFromBottom < 100) {
+          isAutoScrollRef.current = true;
+        }
+      }
+      startY = currentY; // Update startY for continuous tracking
+    };
+
     el.addEventListener('wheel', handleWheel, { passive: true });
-    return () => el.removeEventListener('wheel', handleWheel);
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+    };
   }, []);
 
   // Show/hide scroll button based on scroll position (always active)
