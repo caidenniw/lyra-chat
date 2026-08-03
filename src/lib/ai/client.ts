@@ -42,7 +42,7 @@ export async function streamChat(
     model,
     messages: processedMessages,
     stream: true,
-    max_tokens: 4096, // Dikembalikan ke maksimal
+    max_tokens: 16384, // Cukup untuk reasoning + jawaban
   };
 
   try {
