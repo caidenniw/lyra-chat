@@ -16,7 +16,7 @@ const AI_BASE_URL = process.env.AI_BASE_URL || 'https://opencode.ai/zen/v1/chat/
 const AI_API_KEY = process.env.AI_API_KEY || '';
 // Merge env models with hardcoded defaults so new models still work
 // even if Railway env var hasn't been updated yet
-const HARDCODED_MODELS = ['hy3-free', 'deepseek-v4-flash-free', 'mimo-v2.5-free', 'nemotron-3-ultra-free'];
+const HARDCODED_MODELS = ['ling-3.0-flash-free', 'deepseek-v4-flash-free', 'mimo-v2.5-free', 'nemotron-3-ultra-free'];
 const ENV_MODELS = (process.env.AI_ALLOWED_MODELS || '').split(',').map(m => m.trim()).filter(Boolean);
 const ALLOWED_MODELS = [...new Set([...ENV_MODELS, ...HARDCODED_MODELS])];
 const MAX_TOKENS = parseInt(process.env.AI_MAX_TOKENS || '32768', 10);
@@ -113,6 +113,7 @@ app.post('/api/chat', (req, res) => {
         let errorBody = '';
         proxyRes.on('data', chunk => { errorBody += chunk; });
         proxyRes.on('end', () => {
+          console.error('[Server] Upstream error:', statusCode, errorBody.slice(0, 500));
           res.status(502).json({ error: 'AI service temporarily unavailable' });
         });
         return;
@@ -146,6 +147,7 @@ app.post('/api/chat', (req, res) => {
 
     proxyReq.on('error', (error) => {
       console.error('[Server] Request error:', error.message);
+      console.error('[Server] Target:', AI_HOSTNAME, AI_PATH);
       if (!res.headersSent) {
         res.status(502).json({ error: 'AI service unavailable' });
       }
@@ -187,8 +189,10 @@ app.get('/chat/*splat', (req, res) => {
 const server = app.listen(PORT, () => {
   console.log(`Lyra Chat server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`AI Base URL: ${AI_BASE_URL}`);
   console.log(`AI Provider: ${AI_HOSTNAME}${AI_PATH}`);
-  console.log(`Allowed models: ${ALLOWED_MODELS.length} configured`);
+  console.log(`AI API Key: ${AI_API_KEY ? 'SET (' + AI_API_KEY.slice(0,8) + '...)' : 'EMPTY'}`);
+  console.log(`Allowed models: ${ALLOWED_MODELS.join(', ')}`);
 });
 
 // Set a high timeout (10 minutes) so long-running reasoning models don't get cut off,

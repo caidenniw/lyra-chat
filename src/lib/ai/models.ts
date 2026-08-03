@@ -19,7 +19,7 @@ export const MODELS: ModelInfo[] = [
     multimodal: false,
   },
   {
-    id: 'hy3-free',
+    id: 'ling-3.0-flash-free',
     name: 'Hydra',
     desc: 'Reasoning kuat, responsif',
     reasoning: true,

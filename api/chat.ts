@@ -19,7 +19,7 @@ const AI_BASE_URL = process.env.AI_BASE_URL || 'https://opencode.ai/zen/v1/chat/
 const AI_API_KEY = process.env.AI_API_KEY || '';
 // Merge env models with hardcoded defaults so new models still work
 // even if Railway env var hasn't been updated yet
-const HARDCODED_MODELS = ['hy3-free', 'deepseek-v4-flash-free', 'mimo-v2.5-free', 'nemotron-3-ultra-free'];
+const HARDCODED_MODELS = ['ling-3.0-flash-free', 'deepseek-v4-flash-free', 'mimo-v2.5-free', 'nemotron-3-ultra-free'];
 const ENV_MODELS = (process.env.AI_ALLOWED_MODELS || '').split(',').map(m => m.trim()).filter(Boolean);
 const ALLOWED_MODELS = [...new Set([...ENV_MODELS, ...HARDCODED_MODELS])];
 const MAX_TOKENS = parseInt(process.env.AI_MAX_TOKENS || '32768', 10);
